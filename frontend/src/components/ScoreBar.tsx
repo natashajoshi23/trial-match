@@ -9,10 +9,10 @@ export default function ScoreBar({ label, value, gradient }: Props) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: 6 }}>
-        <span style={{ color: '#7A7AA0' }}>{label}</span>
-        <span style={{ fontWeight: 700, color: '#EDE8FF', fontFamily: "'JetBrains Mono', monospace" }}>{pct}%</span>
+        <span style={{ color: '#8A9BA8' }}>{label}</span>
+        <span style={{ fontWeight: 700, color: '#1B3A52', fontFamily: "'JetBrains Mono', monospace" }}>{pct}%</span>
       </div>
-      <div style={{ height: 5, width: '100%', borderRadius: 999, background: '#1E2240', overflow: 'hidden' }}>
+      <div style={{ height: 5, width: '100%', borderRadius: 999, background: '#E2D9C8', overflow: 'hidden' }}>
         <div
           style={{
             height: 5,

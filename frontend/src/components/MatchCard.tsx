@@ -9,26 +9,27 @@ interface Props {
 
 const RING_R = 26
 const RING_CIRC = 2 * Math.PI * RING_R
+const NAVY = '#1B3A52'
 
 function cardAccent(score: number, excluded: boolean) {
-  if (excluded) return 'linear-gradient(90deg,#EF4444,#F87171)'
-  if (score >= 0.70) return 'linear-gradient(90deg,#7C5CFC,#F59E0B)'
-  if (score >= 0.50) return 'linear-gradient(90deg,#F59E0B,#FB923C)'
-  return 'linear-gradient(90deg,#252845,#1E2240)'
+  if (excluded) return 'linear-gradient(90deg,#C03A2B,#E8701A)'
+  if (score >= 0.70) return `linear-gradient(90deg,${NAVY},#F5B642)`
+  if (score >= 0.50) return 'linear-gradient(90deg,#E8701A,#F5B642)'
+  return 'linear-gradient(90deg,#E2D9C8,#DDD5C0)'
 }
 
 function headlineColor(score: number, excluded: boolean) {
-  if (excluded) return '#F87171'
-  if (score >= 0.70) return '#A78BFA'
-  if (score >= 0.50) return '#FCD34D'
-  return '#7A7AA0'
+  if (excluded) return '#C03A2B'
+  if (score >= 0.70) return NAVY
+  if (score >= 0.50) return '#E8701A'
+  return '#8A9BA8'
 }
 
 function ScoreRing({ score, excluded, gradId }: { score: number; excluded: boolean; gradId: string }) {
   const dash = RING_CIRC * (excluded ? 0.08 : score)
   const pct = Math.round(score * 100)
-  const colorA = excluded ? '#EF4444' : '#7C5CFC'
-  const colorB = excluded ? '#F87171' : '#F59E0B'
+  const colorA = excluded ? '#C03A2B' : NAVY
+  const colorB = excluded ? '#E8701A' : '#F5B642'
 
   return (
     <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
@@ -39,9 +40,7 @@ function ScoreRing({ score, excluded, gradId }: { score: number; excluded: boole
             <stop offset="100%" stopColor={colorB} />
           </linearGradient>
         </defs>
-        {/* Track */}
-        <circle cx="36" cy="36" r={RING_R} fill="none" stroke="#1E2240" strokeWidth="7" />
-        {/* Progress */}
+        <circle cx="36" cy="36" r={RING_R} fill="none" stroke="#E2D9C8" strokeWidth="7" />
         <circle
           cx="36" cy="36" r={RING_R}
           fill="none"
@@ -57,43 +56,45 @@ function ScoreRing({ score, excluded, gradId }: { score: number; excluded: boole
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#EDE8FF', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: NAVY, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
           {pct}
         </span>
-        <span style={{ fontSize: '0.55rem', color: '#4A4A70', fontWeight: 600 }}>%</span>
+        <span style={{ fontSize: '0.55rem', color: '#8A9BA8', fontWeight: 600 }}>%</span>
       </div>
     </div>
   )
 }
 
-function EligSection({ icon, title, items, colorA, colorB }: {
+function EligSection({ icon, title, items, borderColor, bgColor, textColor }: {
   icon: React.ReactNode
   title: string
   items: string[]
-  colorA: string  // border color
-  colorB: string  // text/icon color
+  borderColor: string
+  bgColor: string
+  textColor: string
 }) {
   if (!items.length) return null
   return (
     <div style={{
       borderRadius: 10,
-      border: `1px solid ${colorA}22`,
-      background: `${colorA}0C`,
+      border: `1px solid ${borderColor}`,
+      background: bgColor,
       padding: '12px 14px',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         fontSize: '0.65rem', fontWeight: 700,
         letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: colorB, marginBottom: 10,
+        color: textColor,
+        marginBottom: 10,
       }}>
         {icon}
         {title}
       </div>
       <ul style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map((item, i) => (
-          <li key={i} style={{ display: 'flex', gap: 8, fontSize: '0.82rem', color: '#C4B8FF', lineHeight: 1.5 }}>
-            <span style={{ color: colorB, flexShrink: 0 }}>·</span>
+          <li key={i} style={{ display: 'flex', gap: 8, fontSize: '0.82rem', color: '#4A6070', lineHeight: 1.5 }}>
+            <span style={{ color: textColor, flexShrink: 0 }}>·</span>
             <span>{item}</span>
           </li>
         ))}
@@ -114,21 +115,22 @@ export default function MatchCard({ trial, rank }: Props) {
   return (
     <div style={{
       borderRadius: 16,
-      border: '1px solid #1E2240',
-      background: '#0C0F1D',
+      border: '1.5px solid #E2D9C8',
+      background: '#FFFFFF',
       overflow: 'hidden',
+      boxShadow: '0 2px 12px rgba(27,58,82,0.06)',
       transition: 'border-color 0.2s, box-shadow 0.2s',
-      opacity: trial.hard_excluded ? 0.8 : 1,
+      opacity: trial.hard_excluded ? 0.85 : 1,
     }}
     onMouseEnter={e => {
       const el = e.currentTarget as HTMLDivElement
-      el.style.borderColor = 'rgba(124,92,252,0.35)'
-      el.style.boxShadow = '0 0 24px rgba(124,92,252,0.1)'
+      el.style.borderColor = 'rgba(27,58,82,0.35)'
+      el.style.boxShadow = '0 4px 24px rgba(27,58,82,0.12)'
     }}
     onMouseLeave={e => {
       const el = e.currentTarget as HTMLDivElement
-      el.style.borderColor = '#1E2240'
-      el.style.boxShadow = 'none'
+      el.style.borderColor = '#E2D9C8'
+      el.style.boxShadow = '0 2px 12px rgba(27,58,82,0.06)'
     }}
     >
       {/* Top accent bar */}
@@ -146,9 +148,9 @@ export default function MatchCard({ trial, rank }: Props) {
                 fontSize: '0.65rem',
                 fontFamily: "'JetBrains Mono', monospace",
                 borderRadius: 6,
-                border: '1px solid #252845',
-                background: '#111525',
-                color: '#7A7AA0',
+                border: '1px solid #E2D9C8',
+                background: '#F7F3EC',
+                color: '#8A9BA8',
                 padding: '2px 7px',
               }}>
                 {trial.nct_id}
@@ -156,9 +158,9 @@ export default function MatchCard({ trial, rank }: Props) {
               {phaseLabel && (
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 600, borderRadius: 6,
-                  border: '1px solid rgba(124,92,252,0.3)',
-                  background: 'rgba(124,92,252,0.1)',
-                  color: '#A78BFA', padding: '2px 7px',
+                  border: '1px solid rgba(27,58,82,0.25)',
+                  background: 'rgba(27,58,82,0.07)',
+                  color: NAVY, padding: '2px 7px',
                 }}>
                   {phaseLabel}
                 </span>
@@ -166,9 +168,9 @@ export default function MatchCard({ trial, rank }: Props) {
               {trial.overall_status && (
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 600, borderRadius: 6,
-                  border: '1px solid rgba(52,211,153,0.3)',
-                  background: 'rgba(52,211,153,0.08)',
-                  color: '#34D399', padding: '2px 7px',
+                  border: '1px solid rgba(34,168,90,0.25)',
+                  background: 'rgba(34,168,90,0.08)',
+                  color: '#16A34A', padding: '2px 7px',
                 }}>
                   {trial.overall_status}
                 </span>
@@ -176,23 +178,23 @@ export default function MatchCard({ trial, rank }: Props) {
               {trial.distance_miles != null && (
                 <span style={{
                   fontSize: '0.65rem', borderRadius: 6,
-                  border: '1px solid #252845',
-                  background: '#111525',
-                  color: '#7A7AA0', padding: '2px 7px',
+                  border: '1px solid #E2D9C8',
+                  background: '#F7F3EC',
+                  color: '#8A9BA8', padding: '2px 7px',
                 }}>
                   {trial.distance_miles < 1 ? '< 1' : Math.round(trial.distance_miles)} mi
                 </span>
               )}
             </div>
 
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#EDE8FF', lineHeight: 1.4, marginBottom: 4 }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: NAVY, lineHeight: 1.4, marginBottom: 4 }}>
               <a
                 href={ctUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.15s' }}
-                onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = '#A78BFA' }}
-                onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = '#EDE8FF' }}
+                onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = '#2D5F7C' }}
+                onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = NAVY }}
               >
                 {trial.brief_title}
               </a>
@@ -210,12 +212,20 @@ export default function MatchCard({ trial, rank }: Props) {
               flexShrink: 0,
               width: 28, height: 28,
               borderRadius: '50%',
-              border: '1px solid #252845',
-              background: '#111525',
+              border: '1.5px solid #E2D9C8',
+              background: '#F7F3EC',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
-              color: '#7A7AA0',
+              color: '#8A9BA8',
               transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget.style.borderColor = 'rgba(27,58,82,0.3)')
+              ;(e.currentTarget.style.color = NAVY)
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget.style.borderColor = '#E2D9C8')
+              ;(e.currentTarget.style.color = '#8A9BA8')
             }}
             aria-label={open ? 'Collapse' : 'Expand'}
           >
@@ -233,7 +243,7 @@ export default function MatchCard({ trial, rank }: Props) {
         {/* Expanded body */}
         {open && (
           <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontSize: '0.82rem', color: '#9090B8', lineHeight: 1.7 }}>{trial.summary}</p>
+            <p style={{ fontSize: '0.82rem', color: '#4A6070', lineHeight: 1.7 }}>{trial.summary}</p>
 
             {/* Eligibility sections */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -241,19 +251,25 @@ export default function MatchCard({ trial, rank }: Props) {
                 icon={<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
                 title="Why eligible"
                 items={trial.why_eligible}
-                colorA="#22C55E" colorB="#4ADE80"
+                borderColor="rgba(22,163,74,0.3)"
+                bgColor="rgba(22,163,74,0.05)"
+                textColor="#16A34A"
               />
               <EligSection
                 icon={<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>}
                 title="Uncertain / unverified"
                 items={trial.why_uncertain}
-                colorA="#F59E0B" colorB="#FCD34D"
+                borderColor="rgba(232,112,26,0.3)"
+                bgColor="rgba(232,112,26,0.05)"
+                textColor="#E8701A"
               />
               <EligSection
                 icon={<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>}
                 title="Not eligible"
                 items={trial.why_excluded}
-                colorA="#EF4444" colorB="#F87171"
+                borderColor="rgba(192,58,43,0.3)"
+                bgColor="rgba(192,58,43,0.05)"
+                textColor="#C03A2B"
               />
             </div>
 
@@ -262,14 +278,14 @@ export default function MatchCard({ trial, rank }: Props) {
               <div style={{
                 display: 'flex', gap: 12,
                 borderRadius: 10,
-                border: '1px solid rgba(124,92,252,0.2)',
-                background: 'rgba(124,92,252,0.07)',
+                border: '1px solid rgba(27,58,82,0.18)',
+                background: 'rgba(27,58,82,0.05)',
                 padding: '12px 14px',
               }}>
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#A78BFA" strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }}>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke={NAVY} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
-                <p style={{ fontSize: '0.82rem', color: '#C4B8FF', fontStyle: 'italic', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '0.82rem', color: '#4A6070', fontStyle: 'italic', lineHeight: 1.6 }}>
                   {trial.llm_narrative}
                 </p>
               </div>
@@ -278,32 +294,32 @@ export default function MatchCard({ trial, rank }: Props) {
             {/* Score breakdown */}
             <div style={{
               borderRadius: 12,
-              border: '1px solid #1E2240',
-              background: '#111525',
+              border: '1.5px solid #E2D9C8',
+              background: '#F7F3EC',
               padding: '14px 16px',
               display: 'flex', flexDirection: 'column', gap: 12,
             }}>
               <p style={{
                 fontSize: '0.6rem', fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: '#4A4A70', marginBottom: -2,
+                color: '#8A9BA8', marginBottom: -2,
               }}>
                 Score breakdown
               </p>
               <ScoreBar
                 label="Semantic relevance (40%)"
                 value={trial.score_breakdown.semantic}
-                gradient="linear-gradient(90deg,#7C5CFC,#A78BFA)"
+                gradient={`linear-gradient(90deg,${NAVY},#2D5F7C)`}
               />
               <ScoreBar
                 label="Eligibility match (40%)"
                 value={trial.score_breakdown.eligibility}
-                gradient="linear-gradient(90deg,#22C55E,#4ADE80)"
+                gradient="linear-gradient(90deg,#E8701A,#F5B642)"
               />
               <ScoreBar
                 label="Geographic proximity (20%)"
                 value={trial.score_breakdown.geo}
-                gradient="linear-gradient(90deg,#F59E0B,#FCD34D)"
+                gradient="linear-gradient(90deg,#22A85A,#4ADE80)"
               />
             </div>
 
@@ -315,12 +331,12 @@ export default function MatchCard({ trial, rank }: Props) {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: '0.75rem', fontWeight: 700,
-                color: '#7C5CFC',
+                color: NAVY,
                 textDecoration: 'none',
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = '#A78BFA' }}
-              onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = '#7C5CFC' }}
+              onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = '#2D5F7C' }}
+              onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = NAVY }}
             >
               View on ClinicalTrials.gov
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

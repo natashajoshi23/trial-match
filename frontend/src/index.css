@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   * {
@@ -13,20 +13,20 @@
   }
 
   body {
-    background-color: #070A15;
-    color: #EDE8FF;
+    background-color: #FBF7F0;
+    color: #1B3A52;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px #7C5CFC, 0 0 0 4px rgba(124, 92, 252, 0.18);
+    box-shadow: 0 0 0 2px #1B3A52, 0 0 0 4px rgba(27, 58, 82, 0.18);
     border-radius: 6px;
   }
 
   select option {
-    background-color: #111525;
-    color: #EDE8FF;
+    background-color: #ffffff;
+    color: #1B3A52;
   }
 }
 
@@ -34,19 +34,16 @@
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #252845;
+    background: #DDD5C0;
     border-radius: 9999px;
   }
 
-  .glow-violet {
-    box-shadow: 0 0 28px rgba(124, 92, 252, 0.22);
-  }
+  .text-muted  { color: #8A9BA8; }
+  .text-soft   { color: #4A6070; }
+  .text-bright { color: #1B3A52; }
+}
 
-  .border-glow {
-    border-color: rgba(124, 92, 252, 0.3);
-  }
-
-  .text-muted { color: #7A7AA0; }
-  .text-soft  { color: #9090B8; }
-  .text-bright { color: #EDE8FF; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
