@@ -9,6 +9,7 @@ interface Props {
 
 export default function TagInput({ label, placeholder = 'Type and press Enter', tags, onChange }: Props) {
   const [input, setInput] = useState('')
+  const [focused, setFocused] = useState(false)
 
   const add = () => {
     const val = input.trim()
@@ -25,16 +26,55 @@ export default function TagInput({ label, placeholder = 'Type and press Enter', 
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
-      <div className="min-h-[38px] flex flex-wrap gap-1.5 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2
-        focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/20 transition-colors">
+      <label style={{
+        display: 'block',
+        fontSize: '0.72rem',
+        fontWeight: 600,
+        color: '#9090B8',
+        marginBottom: 6,
+      }}>
+        {label}
+      </label>
+      <div style={{
+        minHeight: 40,
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        alignItems: 'center',
+        borderRadius: 8,
+        border: `1px solid ${focused ? '#7C5CFC' : '#252845'}`,
+        background: '#080A16',
+        padding: '6px 10px',
+        boxShadow: focused ? '0 0 0 3px rgba(124,92,252,0.15)' : 'none',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}>
         {tags.map((tag, i) => (
-          <span key={i} className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 text-teal-800 text-xs px-2.5 py-0.5 font-medium">
+          <span key={i} style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            borderRadius: 999,
+            background: 'rgba(124,92,252,0.18)',
+            border: '1px solid rgba(124,92,252,0.35)',
+            color: '#C4B8FF',
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            padding: '2px 10px 2px 8px',
+          }}>
             {tag}
             <button
               type="button"
               onClick={() => remove(i)}
-              className="text-teal-500 hover:text-teal-700 leading-none ml-0.5 transition-colors"
+              style={{
+                color: '#7C5CFC',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                lineHeight: 1,
+                padding: 0,
+                marginLeft: 2,
+              }}
               aria-label={`Remove ${tag}`}
             >
               ×
@@ -46,9 +86,19 @@ export default function TagInput({ label, placeholder = 'Type and press Enter', 
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={onKey}
-          onBlur={add}
+          onBlur={() => { add(); setFocused(false) }}
+          onFocus={() => setFocused(true)}
           placeholder={tags.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[120px] outline-none text-sm bg-transparent placeholder:text-slate-400"
+          style={{
+            flex: 1,
+            minWidth: 120,
+            outline: 'none',
+            fontSize: '0.85rem',
+            background: 'transparent',
+            color: '#EDE8FF',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            border: 'none',
+          }}
         />
       </div>
     </div>

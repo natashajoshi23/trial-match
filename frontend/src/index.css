@@ -3,22 +3,50 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
+
   * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply bg-slate-50 text-slate-900;
+    background-color: #070A15;
+    color: #EDE8FF;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-teal-500 ring-offset-2;
+    outline: none;
+    box-shadow: 0 0 0 2px #7C5CFC, 0 0 0 4px rgba(124, 92, 252, 0.18);
+    border-radius: 6px;
+  }
+
+  select option {
+    background-color: #111525;
+    color: #EDE8FF;
   }
 }
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { @apply rounded-full bg-slate-200; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #252845;
+    border-radius: 9999px;
+  }
+
+  .glow-violet {
+    box-shadow: 0 0 28px rgba(124, 92, 252, 0.22);
+  }
+
+  .border-glow {
+    border-color: rgba(124, 92, 252, 0.3);
+  }
+
+  .text-muted { color: #7A7AA0; }
+  .text-soft  { color: #9090B8; }
+  .text-bright { color: #EDE8FF; }
 }

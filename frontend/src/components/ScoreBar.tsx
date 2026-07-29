@@ -8,14 +8,19 @@ export default function ScoreBar({ label, value, gradient }: Props) {
   const pct = Math.round(value * 100)
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1.5">
-        <span className="text-slate-500">{label}</span>
-        <span className="font-semibold text-slate-700">{pct}%</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: 6 }}>
+        <span style={{ color: '#7A7AA0' }}>{label}</span>
+        <span style={{ fontWeight: 700, color: '#EDE8FF', fontFamily: "'JetBrains Mono', monospace" }}>{pct}%</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+      <div style={{ height: 5, width: '100%', borderRadius: 999, background: '#1E2240', overflow: 'hidden' }}>
         <div
-          className="h-2 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: gradient }}
+          style={{
+            height: 5,
+            borderRadius: 999,
+            width: `${pct}%`,
+            background: gradient,
+            transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
+          }}
         />
       </div>
     </div>

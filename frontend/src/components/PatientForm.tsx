@@ -33,222 +33,605 @@ const DEMO: PatientProfile = {
   additional_notes: '',
 }
 
-const ECOG_LABELS = ['Fully active', 'Restricted, ambulatory', 'Ambulatory, self-care only', 'Limited self-care', 'Completely disabled']
+const ECOG_OPTIONS = [
+  { score: 0, short: 'Fully active', long: 'No restrictions' },
+  { score: 1, short: 'Restricted', long: 'Strenuous activity limited' },
+  { score: 2, short: 'Self-care', long: 'Ambulatory, no work' },
+  { score: 3, short: 'Limited', long: 'Confined to bed >50% of day' },
+  { score: 4, short: 'Disabled', long: 'Completely confined' },
+]
 
-function inputCls(extra = '') {
-  return `w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400
-    focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors ${extra}`
+const STEP_LABELS = ['Profile', 'Clinical', 'Search']
+
+// ─── tiny shared styles ───────────────────────────────────────────────────────
+const fieldLabel: React.CSSProperties = {
+  display: 'block',
+  fontSize: '0.68rem',
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: '#6B6B9A',
+  marginBottom: 8,
 }
 
-function SectionLabel({ children }: { children: string }) {
+function FocusInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [f, setF] = useState(false)
   return (
-    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{children}</p>
+    <input
+      {...props}
+      style={{
+        width: '100%', borderRadius: 10,
+        border: `1px solid ${f ? '#7C5CFC' : '#252845'}`,
+        background: '#080A16',
+        padding: '10px 14px',
+        fontSize: '0.9rem', color: '#EDE8FF',
+        outline: 'none',
+        boxShadow: f ? '0 0 0 3px rgba(124,92,252,0.15)' : 'none',
+        transition: 'border-color .15s, box-shadow .15s',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        ...props.style,
+      }}
+      onFocus={e => { setF(true); props.onFocus?.(e) }}
+      onBlur={e => { setF(false); props.onBlur?.(e) }}
+    />
   )
 }
 
+// ─── Step 1: Patient Profile ──────────────────────────────────────────────────
+function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProfile, v: any) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* Sex toggle */}
+      <div>
+        <p style={fieldLabel}>Biological sex</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {(['female', 'male', 'other'] as const).map(s => {
+            const active = p.sex === s
+            const icons: Record<string, string> = { female: '♀', male: '♂', other: '◇' }
+            const labels: Record<string, string> = { female: 'Female', male: 'Male', other: 'Other' }
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => set('sex', s)}
+                style={{
+                  borderRadius: 12,
+                  padding: '12px 8px',
+                  border: active ? '1px solid rgba(124,92,252,0.6)' : '1px solid #252845',
+                  background: active ? 'rgba(124,92,252,0.18)' : '#080A16',
+                  color: active ? '#C4B8FF' : '#6B6B9A',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  boxShadow: active ? '0 0 12px rgba(124,92,252,0.2)' : 'none',
+                  transition: 'all .15s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
+                <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{icons[s]}</span>
+                <span>{labels[s]}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Age stepper */}
+      <div>
+        <p style={fieldLabel}>Age</p>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: '#080A16',
+          border: '1px solid #252845',
+          borderRadius: 12, padding: '8px 14px',
+        }}>
+          <button
+            type="button"
+            onClick={() => set('age', Math.max(0, p.age - 1))}
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              border: '1px solid #252845', background: '#111525',
+              color: '#7C5CFC', fontSize: '1.2rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all .15s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(124,92,252,0.12)') }}
+            onMouseLeave={e => { (e.currentTarget.style.background = '#111525') }}
+          >−</button>
+          <span style={{
+            flex: 1, textAlign: 'center',
+            fontSize: '1.6rem', fontWeight: 800,
+            color: '#EDE8FF', letterSpacing: '-0.02em',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>
+            {p.age}
+          </span>
+          <button
+            type="button"
+            onClick={() => set('age', Math.min(120, p.age + 1))}
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              border: '1px solid #252845', background: '#111525',
+              color: '#7C5CFC', fontSize: '1.2rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all .15s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(124,92,252,0.12)') }}
+            onMouseLeave={e => { (e.currentTarget.style.background = '#111525') }}
+          >+</button>
+        </div>
+      </div>
+
+      {/* Condition */}
+      <div>
+        <p style={fieldLabel}>Primary condition *</p>
+        <FocusInput
+          type="text"
+          required
+          placeholder="e.g. HER2-positive breast cancer"
+          value={p.condition}
+          onChange={e => set('condition', e.target.value)}
+        />
+      </div>
+
+      {/* ZIP */}
+      <div>
+        <p style={fieldLabel}>Patient ZIP code *</p>
+        <FocusInput
+          type="text"
+          required
+          placeholder="e.g. 10001"
+          pattern="[0-9]{5}(-[0-9]{4})?"
+          value={p.zip_code}
+          onChange={e => set('zip_code', e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 2: Clinical Details ─────────────────────────────────────────────────
+function StepClinical({ p, set }: { p: PatientProfile; set: (k: keyof PatientProfile, v: any) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* ECOG cards */}
+      <div>
+        <p style={fieldLabel}>ECOG performance status</p>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          {/* null = not reported */}
+          {[null, ...ECOG_OPTIONS.map(o => o.score)].map((val) => {
+            const active = p.ecog_status === val
+            const label = val === null ? '—' : String(val)
+            return (
+              <button
+                key={String(val)}
+                type="button"
+                onClick={() => set('ecog_status', val)}
+                style={{
+                  flex: 1,
+                  padding: '10px 4px',
+                  borderRadius: 10,
+                  border: active ? '1px solid rgba(124,92,252,0.6)' : '1px solid #252845',
+                  background: active ? 'rgba(124,92,252,0.18)' : '#080A16',
+                  color: active ? '#C4B8FF' : '#6B6B9A',
+                  cursor: 'pointer',
+                  fontSize: '1rem', fontWeight: 800,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  boxShadow: active ? '0 0 12px rgba(124,92,252,0.2)' : 'none',
+                  transition: 'all .15s',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        {p.ecog_status !== null && (
+          <p style={{ fontSize: '0.72rem', color: '#A78BFA', marginTop: 4 }}>
+            {p.ecog_status} — {ECOG_OPTIONS[p.ecog_status].short}: {ECOG_OPTIONS[p.ecog_status].long}
+          </p>
+        )}
+        {p.ecog_status === null && (
+          <p style={{ fontSize: '0.72rem', color: '#4A4A70' }}>Not reported</p>
+        )}
+      </div>
+
+      <TagInput label="Biomarkers" placeholder="HER2+, ER-, BRCA1 …" tags={p.biomarkers} onChange={v => set('biomarkers', v)} />
+      <TagInput label="Current medications" placeholder="trastuzumab, letrozole …" tags={p.current_medications} onChange={v => set('current_medications', v)} />
+      <TagInput label="Prior treatments" placeholder="surgery, radiation …" tags={p.prior_treatments} onChange={v => set('prior_treatments', v)} />
+      <TagInput label="Comorbidities" placeholder="hypertension, diabetes …" tags={p.comorbidities} onChange={v => set('comorbidities', v)} />
+
+      <div>
+        <p style={fieldLabel}>Additional notes</p>
+        <textarea
+          rows={3}
+          placeholder="Any other relevant clinical details…"
+          value={p.additional_notes}
+          onChange={e => set('additional_notes', e.target.value)}
+          style={{
+            width: '100%', borderRadius: 10,
+            border: '1px solid #252845', background: '#080A16',
+            padding: '10px 14px', fontSize: '0.85rem', color: '#EDE8FF',
+            outline: 'none', resize: 'none',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 3: Search options + summary ────────────────────────────────────────
+function StepSearch({
+  p, topK, setTopK, maxDist, setMaxDist, loading,
+}: {
+  p: PatientProfile; topK: number; setTopK: (n: number) => void
+  maxDist: string; setMaxDist: (s: string) => void; loading: boolean
+}) {
+  const RESULT_OPTS = [5, 10, 15, 20]
+  const DIST_PRESETS = [25, 50, 100, 250]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* Max results */}
+      <div>
+        <p style={fieldLabel}>Max results</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {RESULT_OPTS.map(n => {
+            const active = topK === n
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setTopK(n)}
+                style={{
+                  padding: '10px 0',
+                  borderRadius: 10,
+                  border: active ? '1px solid rgba(124,92,252,0.6)' : '1px solid #252845',
+                  background: active ? 'rgba(124,92,252,0.18)' : '#080A16',
+                  color: active ? '#C4B8FF' : '#6B6B9A',
+                  cursor: 'pointer',
+                  fontWeight: 800, fontSize: '0.95rem',
+                  transition: 'all .15s',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  boxShadow: active ? '0 0 12px rgba(124,92,252,0.2)' : 'none',
+                }}
+              >
+                {n}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Max distance */}
+      <div>
+        <p style={fieldLabel}>Max distance (miles)</p>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setMaxDist('')}
+            style={{
+              padding: '7px 14px', borderRadius: 20,
+              border: maxDist === '' ? '1px solid rgba(124,92,252,0.6)' : '1px solid #252845',
+              background: maxDist === '' ? 'rgba(124,92,252,0.18)' : '#080A16',
+              color: maxDist === '' ? '#C4B8FF' : '#6B6B9A',
+              cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+              transition: 'all .15s',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              boxShadow: maxDist === '' ? '0 0 12px rgba(124,92,252,0.2)' : 'none',
+            }}
+          >
+            No limit
+          </button>
+          {DIST_PRESETS.map(d => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setMaxDist(String(d))}
+              style={{
+                padding: '7px 14px', borderRadius: 20,
+                border: maxDist === String(d) ? '1px solid rgba(124,92,252,0.6)' : '1px solid #252845',
+                background: maxDist === String(d) ? 'rgba(124,92,252,0.18)' : '#080A16',
+                color: maxDist === String(d) ? '#C4B8FF' : '#6B6B9A',
+                cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+                transition: 'all .15s',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                boxShadow: maxDist === String(d) ? '0 0 12px rgba(124,92,252,0.2)' : 'none',
+              }}
+            >
+              ≤ {d} mi
+            </button>
+          ))}
+        </div>
+        {/* custom distance input */}
+        <FocusInput
+          type="number"
+          min={0}
+          placeholder="Custom (miles)…"
+          value={maxDist}
+          onChange={e => setMaxDist(e.target.value)}
+          style={{ fontSize: '0.85rem' }}
+        />
+      </div>
+
+      {/* Patient summary */}
+      <div style={{
+        borderRadius: 12,
+        border: '1px solid #1E2240',
+        background: '#111525',
+        padding: '14px 16px',
+      }}>
+        <p style={{ ...fieldLabel, marginBottom: 12 }}>Summary</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.8rem' }}>
+          <SummaryRow icon="👤" label="Patient" value={`${p.age}yo ${p.sex}`} />
+          <SummaryRow icon="🩺" label="Condition" value={p.condition || '—'} />
+          <SummaryRow icon="📍" label="ZIP" value={p.zip_code || '—'} />
+          {p.ecog_status !== null && (
+            <SummaryRow icon="📊" label="ECOG" value={`${p.ecog_status} — ${ECOG_OPTIONS[p.ecog_status].short}`} />
+          )}
+          {p.biomarkers.length > 0 && (
+            <SummaryRow icon="🔬" label="Biomarkers" value={p.biomarkers.join(', ')} />
+          )}
+          {p.current_medications.length > 0 && (
+            <SummaryRow icon="💊" label="Medications" value={p.current_medications.join(', ')} />
+          )}
+        </div>
+      </div>
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          width: '100%', borderRadius: 14, padding: '14px 0',
+          fontSize: '0.92rem', fontWeight: 800, letterSpacing: '0.02em',
+          color: '#fff', border: 'none',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.6 : 1,
+          background: loading ? '#252845' : 'linear-gradient(135deg, #7C5CFC 0%, #9B7DFF 100%)',
+          boxShadow: loading ? 'none' : '0 6px 24px rgba(124,92,252,0.45)',
+          transition: 'all .2s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+        }}
+      >
+        {loading ? (
+          <>
+            <svg className="animate-spin" width="18" height="18" fill="none" viewBox="0 0 24 24">
+              <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Searching trials…
+          </>
+        ) : (
+          <>
+            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            Find Matching Trials
+          </>
+        )}
+      </button>
+    </div>
+  )
+}
+
+function SummaryRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+      <span style={{ fontSize: '0.75rem', flexShrink: 0 }}>{icon}</span>
+      <span style={{ color: '#4A4A70', fontWeight: 600, flexShrink: 0, fontSize: '0.72rem' }}>{label}</span>
+      <span style={{ color: '#C4B8FF', flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+// ─── Step indicator ───────────────────────────────────────────────────────────
+function StepDots({ step, total }: { step: number; total: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24 }}>
+      {Array.from({ length: total }).map((_, i) => {
+        const done = i < step
+        const active = i === step
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            {/* Circle */}
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+              border: active ? '2px solid #7C5CFC' : done ? '2px solid #7C5CFC' : '2px solid #252845',
+              background: active ? '#7C5CFC' : done ? 'rgba(124,92,252,0.25)' : '#080A16',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: active ? '0 0 12px rgba(124,92,252,0.4)' : 'none',
+              transition: 'all .3s',
+              zIndex: 1,
+            }}>
+              {done ? (
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#A78BFA" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : (
+                <span style={{
+                  fontSize: '0.68rem', fontWeight: 800,
+                  color: active ? '#fff' : '#4A4A70',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  {i + 1}
+                </span>
+              )}
+            </div>
+            {/* Connector line */}
+            {i < total - 1 && (
+              <div style={{
+                flex: 1, height: 2, borderRadius: 1,
+                background: done ? 'rgba(124,92,252,0.5)' : '#1E2240',
+                transition: 'background .3s',
+              }} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function PatientForm({ onSubmit, loading }: Props) {
+  const [step, setStep] = useState(0)
   const [p, setP] = useState<PatientProfile>(EMPTY)
   const [topK, setTopK] = useState(10)
   const [maxDist, setMaxDist] = useState<string>('')
-  const [expanded, setExpanded] = useState(false)
 
   const set = <K extends keyof PatientProfile>(k: K, v: PatientProfile[K]) =>
     setP(prev => ({ ...prev, [k]: v }))
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+    if (step < 2) { setStep(step + 1); return }
     onSubmit(p, topK, maxDist ? Number(maxDist) : null)
   }
 
   const loadDemo = () => { setP(DEMO); setMaxDist('') }
 
+  const canNext = step === 0 ? p.condition.trim() !== '' && p.zip_code.trim() !== '' : true
+
+  const stepTitles = ['Patient Profile', 'Clinical Details', 'Search Settings']
+  const stepSubs = [
+    'Core patient information',
+    'Optional clinical data',
+    'Configure & launch',
+  ]
+
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Accent bar */}
-      <div className="h-1" style={{ background: 'linear-gradient(90deg, #0d9488, #3b82f6)' }} />
-
-      <div className="p-5 space-y-5">
-        {/* Title */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="font-bold text-slate-900">Patient Profile</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Required fields marked *</p>
-          </div>
-          <button
-            type="button"
-            onClick={loadDemo}
-            className="text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-1.5 rounded-full transition-colors shrink-0"
-          >
-            Load demo
-          </button>
-        </div>
-
-        {/* Core section */}
-        <div className="space-y-3">
-          <SectionLabel>Core information</SectionLabel>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Age *</label>
-              <input
-                type="number"
-                required
-                min={0}
-                max={120}
-                value={p.age}
-                onChange={e => set('age', Number(e.target.value))}
-                className={inputCls()}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Sex *</label>
-              <select
-                value={p.sex}
-                onChange={e => set('sex', e.target.value as PatientProfile['sex'])}
-                className={inputCls()}
-              >
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Condition *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. HER2-positive breast cancer"
-              value={p.condition}
-              onChange={e => set('condition', e.target.value)}
-              className={inputCls()}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">ZIP Code *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. 10001"
-              pattern="[0-9]{5}(-[0-9]{4})?"
-              value={p.zip_code}
-              onChange={e => set('zip_code', e.target.value)}
-              className={inputCls()}
-            />
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-slate-100" />
-
-        {/* Clinical data — collapsible */}
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        background: '#0C0F1D',
+        borderRadius: 20,
+        border: '1px solid #1E2240',
+        overflow: 'hidden',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+      }}
+    >
+      {/* Top header */}
+      <div style={{
+        padding: '18px 22px 16px',
+        background: 'linear-gradient(135deg, rgba(124,92,252,0.14) 0%, rgba(124,92,252,0.04) 100%)',
+        borderBottom: '1px solid #1E2240',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+      }}>
         <div>
+          <h2 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#EDE8FF', letterSpacing: '-0.01em' }}>
+            {stepTitles[step]}
+          </h2>
+          <p style={{ fontSize: '0.7rem', color: '#4A4A70', marginTop: 3 }}>{stepSubs[step]}</p>
+        </div>
+        <button
+          type="button"
+          onClick={loadDemo}
+          style={{
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.04em',
+            padding: '5px 11px', borderRadius: 999,
+            background: 'rgba(124,92,252,0.1)',
+            border: '1px solid rgba(124,92,252,0.3)',
+            color: '#A78BFA', cursor: 'pointer',
+            transition: 'all .15s', flexShrink: 0,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}
+          onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(124,92,252,0.2)') }}
+          onMouseLeave={e => { (e.currentTarget.style.background = 'rgba(124,92,252,0.1)') }}
+        >
+          Demo
+        </button>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '22px 22px 20px' }}>
+        {/* Step dots */}
+        <StepDots step={step} total={3} />
+
+        {/* Step content */}
+        <div style={{ minHeight: 280 }}>
+          {step === 0 && <StepProfile p={p} set={set} />}
+          {step === 1 && <StepClinical p={p} set={set} />}
+          {step === 2 && (
+            <StepSearch
+              p={p} topK={topK} setTopK={setTopK}
+              maxDist={maxDist} setMaxDist={setMaxDist}
+              loading={loading}
+            />
+          )}
+        </div>
+
+        {/* Navigation (steps 0 & 1 only; step 2 uses the submit inside StepSearch) */}
+        {step < 2 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 24 }}>
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={() => setStep(s => s - 1)}
+                style={{
+                  flex: '0 0 auto',
+                  padding: '11px 20px', borderRadius: 12,
+                  border: '1px solid #252845', background: '#111525',
+                  color: '#9090B8', cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 700,
+                  transition: 'all .15s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+                onMouseEnter={e => { (e.currentTarget.style.borderColor = '#7C5CFC'); (e.currentTarget.style.color = '#A78BFA') }}
+                onMouseLeave={e => { (e.currentTarget.style.borderColor = '#252845'); (e.currentTarget.style.color = '#9090B8') }}
+              >
+                ← Back
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!canNext}
+              style={{
+                flex: 1,
+                padding: '11px 0', borderRadius: 12,
+                border: 'none',
+                background: canNext ? 'linear-gradient(135deg, #7C5CFC 0%, #9B7DFF 100%)' : '#1E2240',
+                color: canNext ? '#fff' : '#4A4A70',
+                cursor: canNext ? 'pointer' : 'not-allowed',
+                fontSize: '0.85rem', fontWeight: 800,
+                boxShadow: canNext ? '0 4px 20px rgba(124,92,252,0.35)' : 'none',
+                transition: 'all .2s',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              {step === 0 ? 'Next: Clinical details →' : 'Next: Search options →'}
+            </button>
+          </div>
+        )}
+
+        {/* Back button on step 2 */}
+        {step === 2 && (
           <button
             type="button"
-            onClick={() => setExpanded(x => !x)}
-            className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700 w-full group transition-colors"
+            onClick={() => setStep(1)}
+            style={{
+              marginTop: 10,
+              width: '100%',
+              padding: '9px 0', borderRadius: 12,
+              border: '1px solid #252845', background: 'none',
+              color: '#6B6B9A', cursor: 'pointer',
+              fontSize: '0.78rem', fontWeight: 600,
+              transition: 'all .15s',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+            onMouseEnter={e => { (e.currentTarget.style.color = '#A78BFA') }}
+            onMouseLeave={e => { (e.currentTarget.style.color = '#6B6B9A') }}
           >
-            <svg
-              className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-slate-600 ${expanded ? 'rotate-90' : ''}`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-            Clinical details
-            <span className="ml-auto text-[10px] text-slate-400 font-normal">{expanded ? 'collapse' : 'expand'}</span>
+            ← Back to clinical details
           </button>
-
-          {expanded && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">ECOG Performance Status</label>
-                <select
-                  value={p.ecog_status ?? ''}
-                  onChange={e => set('ecog_status', e.target.value === '' ? null : Number(e.target.value))}
-                  className={inputCls()}
-                >
-                  <option value="">Not reported</option>
-                  {[0, 1, 2, 3, 4].map(n => (
-                    <option key={n} value={n}>{n} — {ECOG_LABELS[n]}</option>
-                  ))}
-                </select>
-              </div>
-
-              <TagInput label="Biomarkers" placeholder="HER2+, ER-, BRCA1 …" tags={p.biomarkers} onChange={v => set('biomarkers', v)} />
-              <TagInput label="Current Medications" placeholder="trastuzumab, letrozole …" tags={p.current_medications} onChange={v => set('current_medications', v)} />
-              <TagInput label="Prior Treatments" placeholder="surgery, radiation …" tags={p.prior_treatments} onChange={v => set('prior_treatments', v)} />
-              <TagInput label="Comorbidities" placeholder="hypertension, diabetes …" tags={p.comorbidities} onChange={v => set('comorbidities', v)} />
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Additional Notes</label>
-                <textarea
-                  rows={2}
-                  placeholder="Any other relevant clinical details…"
-                  value={p.additional_notes}
-                  onChange={e => set('additional_notes', e.target.value)}
-                  className={inputCls('resize-none')}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-slate-100" />
-
-        {/* Search options */}
-        <div className="space-y-3">
-          <SectionLabel>Search options</SectionLabel>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Max results</label>
-              <select value={topK} onChange={e => setTopK(Number(e.target.value))} className={inputCls()}>
-                {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n} trials</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Distance (mi)</label>
-              <input
-                type="number"
-                min={0}
-                placeholder="No limit"
-                value={maxDist}
-                onChange={e => setMaxDist(e.target.value)}
-                className={inputCls()}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl py-3 text-sm font-bold text-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{
-            background: loading ? '#94a3b8' : 'linear-gradient(135deg, #0d9488, #0891b2)',
-            boxShadow: loading ? 'none' : '0 2px 12px rgba(13,148,136,0.35)',
-          }}
-        >
-          {loading ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Searching trials…
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-              Find Trials
-            </>
-          )}
-        </button>
+        )}
       </div>
     </form>
   )

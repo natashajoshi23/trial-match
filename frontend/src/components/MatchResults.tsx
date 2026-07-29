@@ -9,20 +9,63 @@ interface Props {
 
 function Skeleton() {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-pulse">
-      <div className="h-1 bg-slate-100" />
-      <div className="p-5 flex gap-4">
-        <div className="w-[68px] h-[68px] rounded-full bg-slate-100 shrink-0" />
-        <div className="flex-1 space-y-2.5 pt-1">
-          <div className="flex gap-2">
-            <div className="h-4 w-20 rounded-md bg-slate-100" />
-            <div className="h-4 w-14 rounded-md bg-slate-100" />
-            <div className="h-4 w-18 rounded-md bg-slate-100" />
+    <div style={{
+      borderRadius: 16,
+      border: '1px solid #1E2240',
+      background: '#0C0F1D',
+      overflow: 'hidden',
+    }}>
+      <div style={{ height: 3, background: '#1E2240' }} />
+      <div style={{ padding: 18, display: 'flex', gap: 14 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: '50%',
+          background: '#111525', flexShrink: 0,
+          animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+        }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[80, 60, 72].map(w => (
+              <div key={w} style={{
+                height: 18, width: w, borderRadius: 6, background: '#111525',
+                animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+              }} />
+            ))}
           </div>
-          <div className="h-4 w-3/4 rounded bg-slate-100" />
-          <div className="h-3 w-1/3 rounded bg-slate-100" />
+          <div style={{
+            height: 16, width: '70%', borderRadius: 6, background: '#111525',
+            animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+          }} />
+          <div style={{
+            height: 12, width: '35%', borderRadius: 6, background: '#111525',
+            animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+          }} />
         </div>
       </div>
+    </div>
+  )
+}
+
+function StatPill({ value, label, color }: { value: number | string; label: string; color: string }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      padding: '10px 18px',
+      borderRadius: 12,
+      border: `1px solid ${color}22`,
+      background: `${color}0C`,
+      minWidth: 80,
+    }}>
+      <span style={{
+        fontSize: '1.2rem', fontWeight: 800,
+        color: color,
+        lineHeight: 1,
+        fontFamily: "'JetBrains Mono', monospace",
+      }}>
+        {value}
+      </span>
+      <span style={{ fontSize: '0.65rem', color: '#7A7AA0', marginTop: 4, fontWeight: 500 }}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -30,16 +73,25 @@ function Skeleton() {
 export default function MatchResults({ data, loading, error }: Props) {
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="flex gap-3 mb-5">
-          {[80, 60, 90, 70].map(w => (
-            <div key={w} className="h-7 rounded-full bg-slate-200 animate-pulse" style={{ width: w }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Loading stat placeholders */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+          {[90, 70, 80, 65].map(w => (
+            <div key={w} style={{
+              height: 60, width: w,
+              borderRadius: 12, background: '#0C0F1D',
+              border: '1px solid #1E2240',
+              animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+            }} />
           ))}
         </div>
         <Skeleton />
         <Skeleton />
         <Skeleton />
-        <p className="text-center text-sm text-slate-400 pt-2">
+        <p style={{
+          textAlign: 'center', fontSize: '0.82rem', color: '#4A4A70',
+          marginTop: 8,
+        }}>
           Fetching trials and computing matches…
         </p>
       </div>
@@ -48,14 +100,26 @@ export default function MatchResults({ data, loading, error }: Props) {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div style={{
+        borderRadius: 16,
+        border: '1px solid rgba(239,68,68,0.25)',
+        background: 'rgba(239,68,68,0.06)',
+        padding: '40px 24px',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: 'rgba(239,68,68,0.12)',
+          border: '1px solid rgba(239,68,68,0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 14px',
+        }}>
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#F87171" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <p className="text-red-700 font-semibold text-sm">Search failed</p>
-        <p className="text-red-500 text-sm mt-1">{error}</p>
+        <p style={{ fontWeight: 700, color: '#F87171', fontSize: '0.875rem' }}>Search failed</p>
+        <p style={{ color: '#9090B8', fontSize: '0.82rem', marginTop: 6 }}>{error}</p>
       </div>
     )
   }
@@ -67,42 +131,59 @@ export default function MatchResults({ data, loading, error }: Props) {
   const excluded = matches.filter(m => m.hard_excluded)
 
   return (
-    <div className="space-y-5">
-      {/* Stats pills */}
-      <div className="flex flex-wrap gap-2">
-        <span className="text-xs rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm">
-          <span className="font-bold text-slate-900">{total_trials_fetched}</span> fetched
-        </span>
-        <span className="text-xs rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm">
-          <span className="font-bold text-slate-900">{total_trials_scored}</span> scored
-        </span>
-        <span className="text-xs rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700 shadow-sm">
-          <span className="font-bold">{eligible.length}</span> potentially eligible
-        </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Stats row */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <StatPill value={total_trials_fetched} label="fetched" color="#7A7AA0" />
+        <StatPill value={total_trials_scored} label="scored" color="#7C5CFC" />
+        <StatPill value={eligible.length} label="eligible" color="#22C55E" />
         {excluded.length > 0 && (
-          <span className="text-xs rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-red-600 shadow-sm">
-            <span className="font-bold">{excluded.length}</span> excluded
-          </span>
+          <StatPill value={excluded.length} label="excluded" color="#EF4444" />
         )}
       </div>
 
       {matches.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div style={{
+          borderRadius: 16,
+          border: '1px solid #1E2240',
+          background: '#0C0F1D',
+          padding: '60px 24px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14,
+            background: 'rgba(124,92,252,0.08)',
+            border: '1px solid rgba(124,92,252,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#7C5CFC" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
           </div>
-          <p className="font-semibold text-slate-600 mb-1">No matching trials found</p>
-          <p className="text-sm text-slate-400">Try broadening your search or adjusting the distance filter.</p>
+          <p style={{ fontWeight: 700, color: '#C4B8FF', marginBottom: 6 }}>No matching trials found</p>
+          <p style={{ fontSize: '0.82rem', color: '#4A4A70' }}>
+            Try broadening your search or adjusting the distance filter.
+          </p>
         </div>
       ) : (
         <>
           {eligible.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-                Potentially eligible — {eligible.length}
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 2 }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: '#22C55E',
+                  boxShadow: '0 0 8px rgba(34,197,94,0.5)',
+                }} />
+                <p style={{
+                  fontSize: '0.65rem', fontWeight: 700,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: '#4ADE80',
+                }}>
+                  Potentially eligible — {eligible.length}
+                </p>
+              </div>
               {eligible.map((trial, i) => (
                 <MatchCard key={trial.nct_id} trial={trial} rank={i} />
               ))}
@@ -110,14 +191,27 @@ export default function MatchResults({ data, loading, error }: Props) {
           )}
 
           {excluded.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-200" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                  Hard exclusions — {excluded.length}
-                </p>
-                <div className="flex-1 h-px bg-slate-200" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, height: 1, background: '#1E2240' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: '#EF4444',
+                    boxShadow: '0 0 8px rgba(239,68,68,0.4)',
+                  }} />
+                  <p style={{
+                    fontSize: '0.65rem', fontWeight: 700,
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    color: '#F87171', whiteSpace: 'nowrap',
+                  }}>
+                    Hard exclusions — {excluded.length}
+                  </p>
+                </div>
+                <div style={{ flex: 1, height: 1, background: '#1E2240' }} />
               </div>
+
               {excluded.map((trial, i) => (
                 <MatchCard key={trial.nct_id} trial={trial} rank={eligible.length + i} />
               ))}
