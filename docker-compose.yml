@@ -1,0 +1,49 @@
+services:
+
+  # ── Backend ─────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .                         # project root so `backend` package resolves
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env                       # OPENAI_API_KEY and overrides go here
+        required: false                  # works without .env (falls back to local model)
+    environment:
+      CHROMA_DIR: /app/data/chroma
+      CACHE_DIR:  /app/data/cache
+    volumes:
+      - chroma_data:/app/data/chroma     # persist vector store across restarts
+      - cache_data:/app/data/cache       # persist trial JSON cache
+    ports:
+      - "8000:8000"                      # expose for direct API access / curl
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - trial_net
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:80"                        # access at http://localhost:5173
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - trial_net
+
+volumes:
+  chroma_data:
+  cache_data:
+
+networks:
+  trial_net:
+    driver: bridge
