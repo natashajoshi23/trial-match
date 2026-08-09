@@ -3,6 +3,7 @@ export interface PatientProfile {
   sex: 'male' | 'female' | 'other'
   condition: string
   zip_code: string
+  country: string
   ecog_status: number | null
   biomarkers: string[]
   current_medications: string[]
@@ -41,6 +42,7 @@ export interface TrialMatchResult {
   phases: string[]
   conditions: string[]
   locations_count: number
+  countries_at_sites: string[]
 }
 
 export interface MatchResponse {

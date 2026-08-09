@@ -132,7 +132,7 @@ async def match_trials(
     patient = body.patient
 
     # Step 1: Geocode
-    patient_lat, patient_lon = await geo.patient_coordinates(patient.zip_code)
+    patient_lat, patient_lon = await geo.patient_coordinates(patient.zip_code, patient.country)
 
     # Step 2: Fetch
     try:
@@ -193,12 +193,16 @@ async def match_trials(
 
         explained = explainer.explain(match, trial, patient)
 
+        site_countries = sorted({
+            loc.country for loc in trial.locations if loc.country
+        })
         results.append(TrialMatchResult(
             **explained.model_dump(),
             overall_status=trial.overall_status,
             phases=trial.phases,
             conditions=trial.conditions,
             locations_count=len(trial.locations),
+            countries_at_sites=site_countries,
         ))
 
     # Step 7: Sort by final_score descending

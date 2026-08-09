@@ -28,15 +28,15 @@ class GeoService:
         self._geocoder = geocoder or ZipCodeGeocoder()
 
     async def patient_coordinates(
-        self, zip_code: str
+        self, zip_code: str, country: str = "United States"
     ) -> tuple[Optional[float], Optional[float]]:
         """
-        Return (lat, lon) for the patient's zip code.
+        Return (lat, lon) for the patient's postal code and country.
 
         Returns (None, None) when geocoding fails — TrialScorer treats
         missing coordinates as a neutral geo score (0.5), not a disqualifier.
         """
-        coords = await self._geocoder.lookup_async(zip_code)
+        coords = await self._geocoder.lookup_async(zip_code, country)
         if coords is None:
             return None, None
         return coords[0], coords[1]

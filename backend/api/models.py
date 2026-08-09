@@ -20,6 +20,7 @@ class TrialMatchResult(ExplainedMatch):
     phases: list[str] = Field(default_factory=list)
     conditions: list[str] = Field(default_factory=list)
     locations_count: int = 0
+    countries_at_sites: list[str] = Field(default_factory=list)
 
 
 class MatchResponse(BaseModel):

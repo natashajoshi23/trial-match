@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import TagInput from './TagInput'
 import type { PatientProfile } from '../types'
 
@@ -7,11 +7,19 @@ interface Props {
   loading: boolean
 }
 
+const COUNTRIES = [
+  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany',
+  'France', 'Netherlands', 'Spain', 'Italy', 'Switzerland', 'Belgium',
+  'Japan', 'South Korea', 'China', 'India', 'Brazil', 'Mexico',
+  'Sweden', 'Denmark', 'Norway', 'Israel', 'Singapore',
+]
+
 const EMPTY: PatientProfile = {
-  age: 45,
+  age: 0,
   sex: 'female',
   condition: '',
   zip_code: '',
+  country: 'United States',
   ecog_status: null,
   biomarkers: [],
   current_medications: [],
@@ -25,6 +33,7 @@ const DEMO: PatientProfile = {
   sex: 'female',
   condition: 'HER2-positive breast cancer',
   zip_code: '10001',
+  country: 'United States',
   ecog_status: 1,
   biomarkers: ['HER2+', 'ER-', 'PR-'],
   current_medications: ['trastuzumab'],
@@ -82,6 +91,9 @@ function FocusInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 
 // ─── Step 1: Patient Profile ──────────────────────────────────────────────────
 function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProfile, v: any) => void }) {
+  const [ageDisplay, setAgeDisplay] = useState(String(p.age))
+  useEffect(() => { setAgeDisplay(String(p.age)) }, [p.age])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* Sex toggle */}
@@ -142,14 +154,35 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
             onMouseEnter={e => { (e.currentTarget.style.background = NAVY_BG) }}
             onMouseLeave={e => { (e.currentTarget.style.background = '#FFFFFF') }}
           >−</button>
-          <span style={{
-            flex: 1, textAlign: 'center',
-            fontSize: '1.6rem', fontWeight: 800,
-            color: NAVY, letterSpacing: '-0.02em',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>
-            {p.age}
-          </span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={ageDisplay}
+            onChange={e => {
+              const raw = e.target.value
+              setAgeDisplay(raw)
+              const v = parseInt(raw, 10)
+              if (!isNaN(v)) set('age', Math.min(120, Math.max(0, v)))
+            }}
+            onFocus={e => e.target.select()}
+            onBlur={() => {
+              const v = parseInt(ageDisplay, 10)
+              const clamped = isNaN(v) ? 0 : Math.min(120, Math.max(0, v))
+              set('age', clamped)
+              setAgeDisplay(String(clamped))
+            }}
+            aria-label="Age"
+            style={{
+              flex: 1, textAlign: 'center',
+              fontSize: '1.6rem', fontWeight: 800,
+              color: NAVY, letterSpacing: '-0.02em',
+              fontFamily: "'JetBrains Mono', monospace",
+              border: 'none', background: 'transparent',
+              outline: 'none', width: 0, minWidth: 0,
+              MozAppearance: 'textfield',
+            }}
+          />
           <button
             type="button"
             onClick={() => set('age', Math.min(120, p.age + 1))}
@@ -176,16 +209,83 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
           value={p.condition}
           onChange={e => set('condition', e.target.value)}
         />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {[
+            'Non-small cell lung cancer',
+            'Glioblastoma',
+            'Type 2 diabetes',
+            'Prostate cancer',
+            'HER2+ breast cancer',
+          ].map(c => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => set('condition', c)}
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: 999,
+                border: `1px solid ${p.condition === c ? NAVY_BORDER : 'rgba(27,58,82,0.18)'}`,
+                background: p.condition === c ? NAVY_BG : 'transparent',
+                color: p.condition === c ? NAVY : '#6B8291',
+                cursor: 'pointer',
+                transition: 'all 0.12s',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+              onMouseEnter={e => {
+                if (p.condition !== c) {
+                  e.currentTarget.style.borderColor = NAVY_BORDER
+                  e.currentTarget.style.color = NAVY
+                }
+              }}
+              onMouseLeave={e => {
+                if (p.condition !== c) {
+                  e.currentTarget.style.borderColor = 'rgba(27,58,82,0.18)'
+                  e.currentTarget.style.color = '#6B8291'
+                }
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ZIP */}
+      {/* Country */}
       <div>
-        <p style={fieldLabel}>Patient ZIP code *</p>
+        <p style={fieldLabel}>Country *</p>
+        <select
+          value={p.country}
+          onChange={e => set('country', e.target.value)}
+          style={{
+            width: '100%', borderRadius: 10,
+            border: `1.5px solid #DDD5C0`,
+            background: '#FFFFFF',
+            padding: '10px 14px',
+            fontSize: '0.9rem', color: NAVY,
+            outline: 'none',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A9BA8' stroke-width='2.5'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 14px center',
+            paddingRight: 36,
+          }}
+        >
+          {COUNTRIES.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Postal code */}
+      <div>
+        <p style={fieldLabel}>Postal code *</p>
         <FocusInput
           type="text"
           required
-          placeholder="e.g. 10001"
-          pattern="[0-9]{5}(-[0-9]{4})?"
+          placeholder={p.country === 'United States' ? 'e.g. 10001' : p.country === 'United Kingdom' ? 'e.g. SW1A 1AA' : p.country === 'Canada' ? 'e.g. M5V 3A4' : 'Postal code'}
           value={p.zip_code}
           onChange={e => set('zip_code', e.target.value)}
         />

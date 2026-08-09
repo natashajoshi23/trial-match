@@ -1,10 +1,14 @@
-import { useState, useId } from 'react'
+import { useState, useEffect, useId } from 'react'
 import ScoreBar from './ScoreBar'
 import type { TrialMatchResult } from '../types'
 
 interface Props {
   trial: TrialMatchResult
   rank: number
+  compareSelected?: boolean
+  onCompareToggle?: () => void
+  isSaved?: boolean
+  onSaveToggle?: () => void
 }
 
 const RING_R = 26
@@ -26,13 +30,43 @@ function headlineColor(score: number, excluded: boolean) {
 }
 
 function ScoreRing({ score, excluded, gradId }: { score: number; excluded: boolean; gradId: string }) {
-  const dash = RING_CIRC * (excluded ? 0.08 : score)
+  const [mounted, setMounted] = useState(false)
+  const [displayPct, setDisplayPct] = useState(0)
+
   const pct = Math.round(score * 100)
+  const targetDash = RING_CIRC * (excluded ? 0.08 : score)
+  const targetOffset = RING_CIRC - targetDash
   const colorA = excluded ? '#C03A2B' : NAVY
   const colorB = excluded ? '#E8701A' : '#F5B642'
 
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMounted(true))
+    })
+
+    const duration = 1200
+    const start = performance.now()
+    let rafId: number
+    const step = (now: number) => {
+      const t = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplayPct(Math.round(eased * pct))
+      if (t < 1) rafId = requestAnimationFrame(step)
+    }
+    rafId = requestAnimationFrame(step)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      cancelAnimationFrame(rafId)
+    }
+  }, [pct])
+
   return (
-    <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+    <div
+      aria-label={`Match score: ${pct}%${excluded ? ', hard excluded' : ''}`}
+      role="img"
+      style={{ position: 'relative', width: 72, height: 72 }}
+    >
       <svg width="72" height="72" viewBox="0 0 72 72">
         <defs>
           <linearGradient id={gradId} gradientTransform="rotate(60, 36, 36)">
@@ -47,20 +81,73 @@ function ScoreRing({ score, excluded, gradId }: { score: number; excluded: boole
           stroke={`url(#${gradId})`}
           strokeWidth="7"
           strokeLinecap="round"
-          strokeDasharray={`${dash} ${RING_CIRC}`}
+          strokeDasharray={RING_CIRC}
+          strokeDashoffset={mounted ? targetOffset : RING_CIRC}
           transform="rotate(-90, 36, 36)"
+          style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }}
         />
       </svg>
       <div style={{
         position: 'absolute', inset: 0,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
       }}>
         <span style={{ fontSize: '0.95rem', fontWeight: 800, color: NAVY, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>
-          {pct}
+          {displayPct}
         </span>
         <span style={{ fontSize: '0.55rem', color: '#8A9BA8', fontWeight: 600 }}>%</span>
       </div>
+    </div>
+  )
+}
+
+function ScoreBreakdownTooltip({ breakdown }: {
+  breakdown: { semantic: number; eligibility: number; geo: number }
+}) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 80,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 100,
+      background: '#1B3A52',
+      borderRadius: 10,
+      padding: '10px 14px',
+      width: 176,
+      boxShadow: '0 8px 28px rgba(27,58,82,0.38)',
+      pointerEvents: 'none',
+    }}>
+      <div style={{
+        position: 'absolute', top: -4, left: '50%',
+        width: 8, height: 8, background: '#1B3A52',
+        transform: 'translateX(-50%) rotate(45deg)',
+        borderRadius: 2,
+      }} />
+      <p style={{
+        fontSize: '0.55rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+        letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
+      }}>
+        Score breakdown
+      </p>
+      {[
+        { label: 'Semantic', weight: '40%', value: breakdown.semantic, color: '#4A9CC4' },
+        { label: 'Eligibility', weight: '40%', value: breakdown.eligibility, color: '#E8701A' },
+        { label: 'Geo', weight: '20%', value: breakdown.geo, color: '#22A85A' },
+      ].map(({ label, weight, value, color }) => (
+        <div key={label} style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5,
+        }}>
+          <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)' }}>
+            {label}
+            <span style={{ color: 'rgba(255,255,255,0.28)', marginLeft: 3, fontSize: '0.55rem' }}>({weight})</span>
+          </span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color, fontFamily: "'JetBrains Mono', monospace" }}>
+            {Math.round(value * 100)}%
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -103,8 +190,9 @@ function EligSection({ icon, title, items, borderColor, bgColor, textColor }: {
   )
 }
 
-export default function MatchCard({ trial, rank }: Props) {
+export default function MatchCard({ trial, rank, compareSelected, onCompareToggle, isSaved, onSaveToggle }: Props) {
   const [open, setOpen] = useState(rank === 0)
+  const [ringHovered, setRingHovered] = useState(false)
   const uid = useId().replace(/:/g, 'x')
 
   const ctUrl = `https://clinicaltrials.gov/study/${trial.nct_id}`
@@ -121,6 +209,7 @@ export default function MatchCard({ trial, rank }: Props) {
       boxShadow: '0 2px 12px rgba(27,58,82,0.06)',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       opacity: trial.hard_excluded ? 0.85 : 1,
+      overflow: 'visible',
     }}
     onMouseEnter={e => {
       const el = e.currentTarget as HTMLDivElement
@@ -134,12 +223,22 @@ export default function MatchCard({ trial, rank }: Props) {
     }}
     >
       {/* Top accent bar */}
-      <div style={{ height: 3, background: cardAccent(trial.final_score, trial.hard_excluded) }} />
+      <div style={{ height: 3, background: cardAccent(trial.final_score, trial.hard_excluded), borderRadius: '14px 14px 0 0' }} />
 
       <div style={{ padding: 18 }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-          <ScoreRing score={trial.final_score} excluded={trial.hard_excluded} gradId={`ring-${uid}`} />
+          {/* Score ring with hover tooltip */}
+          <div
+            style={{ position: 'relative', flexShrink: 0, width: 72, height: 72 }}
+            onMouseEnter={() => setRingHovered(true)}
+            onMouseLeave={() => setRingHovered(false)}
+          >
+            <ScoreRing score={trial.final_score} excluded={trial.hard_excluded} gradId={`ring-${uid}`} />
+            {ringHovered && (
+              <ScoreBreakdownTooltip breakdown={trial.score_breakdown} />
+            )}
+          </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Badges */}
@@ -192,6 +291,7 @@ export default function MatchCard({ trial, rank }: Props) {
                 href={ctUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`${trial.brief_title} — view on ClinicalTrials.gov, opens in new tab`}
                 style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.15s' }}
                 onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = '#2D5F7C' }}
                 onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = NAVY }}
@@ -204,6 +304,88 @@ export default function MatchCard({ trial, rank }: Props) {
               {trial.headline}
             </p>
           </div>
+
+          {/* Save toggle */}
+          {onSaveToggle && (
+            <button
+              onClick={e => { e.stopPropagation(); onSaveToggle() }}
+              style={{
+                flexShrink: 0,
+                width: 28, height: 28,
+                borderRadius: '50%',
+                border: isSaved ? '1.5px solid rgba(232,112,26,0.5)' : '1.5px solid #E2D9C8',
+                background: isSaved ? 'rgba(232,112,26,0.1)' : '#F7F3EC',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                color: isSaved ? '#E8701A' : '#8A9BA8',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                if (!isSaved) {
+                  e.currentTarget.style.borderColor = 'rgba(232,112,26,0.4)'
+                  e.currentTarget.style.color = '#E8701A'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isSaved) {
+                  e.currentTarget.style.borderColor = '#E2D9C8'
+                  e.currentTarget.style.color = '#8A9BA8'
+                }
+              }}
+              aria-label={isSaved ? 'Remove from saved' : 'Save trial'}
+            >
+              {isSaved ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+              ) : (
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* Compare toggle */}
+          {onCompareToggle && (
+            <button
+              onClick={e => { e.stopPropagation(); onCompareToggle() }}
+              style={{
+                flexShrink: 0,
+                width: 28, height: 28,
+                borderRadius: '50%',
+                border: compareSelected ? `1.5px solid ${NAVY}` : '1.5px solid #E2D9C8',
+                background: compareSelected ? NAVY : '#F7F3EC',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                color: compareSelected ? '#FFFFFF' : '#8A9BA8',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                if (!compareSelected) {
+                  e.currentTarget.style.borderColor = 'rgba(27,58,82,0.35)'
+                  e.currentTarget.style.color = NAVY
+                }
+              }}
+              onMouseLeave={e => {
+                if (!compareSelected) {
+                  e.currentTarget.style.borderColor = '#E2D9C8'
+                  e.currentTarget.style.color = '#8A9BA8'
+                }
+              }}
+              aria-label={compareSelected ? 'Remove from comparison' : 'Add to comparison'}
+            >
+              {compareSelected ? (
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : (
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              )}
+            </button>
+          )}
 
           {/* Expand toggle */}
           <button
@@ -227,7 +409,8 @@ export default function MatchCard({ trial, rank }: Props) {
               (e.currentTarget.style.borderColor = '#E2D9C8')
               ;(e.currentTarget.style.color = '#8A9BA8')
             }}
-            aria-label={open ? 'Collapse' : 'Expand'}
+            aria-label={open ? 'Collapse trial details' : 'Expand trial details'}
+            aria-expanded={open}
           >
             <svg
               width="12" height="12"
@@ -328,6 +511,7 @@ export default function MatchCard({ trial, rank }: Props) {
               href={ctUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="View full trial on ClinicalTrials.gov, opens in new tab"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: '0.75rem', fontWeight: 700,

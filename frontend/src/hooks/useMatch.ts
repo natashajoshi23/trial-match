@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { fetchMatches } from '../api'
 import type { MatchRequest, MatchResponse } from '../types'
+import { DEMO_DATA } from '../demoData'
 
 export function useMatch() {
   const [data, setData] = useState<MatchResponse | null>(null)
@@ -20,5 +21,10 @@ export function useMatch() {
     }
   }, [])
 
-  return { data, loading, error, match }
+  const loadDemo = useCallback(() => {
+    setError(null)
+    setData(DEMO_DATA)
+  }, [])
+
+  return { data, loading, error, match, loadDemo }
 }

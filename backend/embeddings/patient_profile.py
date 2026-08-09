@@ -25,6 +25,7 @@ class PatientProfile(BaseModel):
     sex: Literal["male", "female", "other"]
     condition: str                              # e.g. "HER2-positive breast cancer"
     zip_code: str
+    country: str = "United States"             # e.g. "United Kingdom", "Canada"
     ecog_status: Optional[int] = None          # 0–4; None means unknown
     biomarkers: list[str] = Field(default_factory=list)          # e.g. ["HER2+", "ER-"]
     current_medications: list[str] = Field(default_factory=list)

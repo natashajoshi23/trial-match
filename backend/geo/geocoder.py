@@ -66,25 +66,26 @@ class ZipCodeGeocoder:
     # Public interface
     # ------------------------------------------------------------------
 
-    def lookup(self, zip_code: str) -> Optional[tuple[float, float]]:
+    def lookup(self, zip_code: str, country: str = "United States") -> Optional[tuple[float, float]]:
         """
-        Return (lat, lon) for a US zip code, or None if not found.
+        Return (lat, lon) for a postal code + country, or None if not found.
 
         Caches both successful and failed results. Raises nothing —
         all geocoding errors are caught and returned as None.
         """
-        clean = _normalize_zip(zip_code)
-        if clean in self._cache:
-            return self._cache[clean]
+        clean = _normalize_postal_code(zip_code, country)
+        cache_key = f"{clean}|{country}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
 
-        result = self._geocode(clean)
-        self._cache[clean] = result
+        result = self._geocode(clean, country)
+        self._cache[cache_key] = result
         return result
 
-    async def lookup_async(self, zip_code: str) -> Optional[tuple[float, float]]:
+    async def lookup_async(self, zip_code: str, country: str = "United States") -> Optional[tuple[float, float]]:
         """Non-blocking wrapper — runs lookup() in a thread-pool executor."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.lookup, zip_code)
+        return await loop.run_in_executor(None, self.lookup, zip_code, country)
 
     @property
     def cache_size(self) -> int:
@@ -94,13 +95,13 @@ class ZipCodeGeocoder:
     # Internal
     # ------------------------------------------------------------------
 
-    def _geocode(self, clean_zip: str) -> Optional[tuple[float, float]]:
+    def _geocode(self, clean_postal: str, country: str = "United States") -> Optional[tuple[float, float]]:
         if self._nominatim is None:
             return None
 
         self._enforce_rate_limit()
         try:
-            location = self._nominatim.geocode(f"{clean_zip}, USA")
+            location = self._nominatim.geocode(f"{clean_postal}, {country}")
             self._last_request = time.monotonic()
             return (location.latitude, location.longitude) if location else None
         except (GeocoderTimedOut, GeocoderServiceError):
@@ -117,6 +118,14 @@ class ZipCodeGeocoder:
             time.sleep(wait)
 
 
+def _normalize_postal_code(postal_code: str, country: str = "United States") -> str:
+    """Strip whitespace; truncate to 5 digits only for US ZIP codes."""
+    clean = postal_code.strip()
+    if country in ("United States", "US", "USA"):
+        clean = clean.split("-")[0][:5]
+    return clean
+
+
 def _normalize_zip(zip_code: str) -> str:
-    """Strip whitespace and truncate to 5-digit ZIP (handles ZIP+4 format)."""
-    return zip_code.strip().split("-")[0][:5]
+    """Legacy alias kept for existing tests."""
+    return _normalize_postal_code(zip_code, "United States")

@@ -47,3 +47,8 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+
+/* Hide native spinners on age input */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
