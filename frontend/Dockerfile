@@ -7,17 +7,16 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npx vite build         # outputs to /app/dist (skips tsc, Vite transpiles TS)
+RUN npx vite build         # outputs to /app/dist
 
 # ---- Stage 2: serve --------------------------------------------------------
 FROM nginx:1.27-alpine
 
-# Copy our config as default.conf.template — nginx's template system runs
-# envsubst and writes it to /etc/nginx/conf.d/default.conf, overwriting the
-# default server block. No manual rm needed.
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Copy nginx template and built app
+COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Substitute only BACKEND_URL, leaving nginx's own $host/$remote_addr etc intact
+CMD ["/bin/sh", "-c", "envsubst '${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
