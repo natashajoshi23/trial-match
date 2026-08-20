@@ -12,14 +12,12 @@ RUN npm run build          # outputs to /app/dist
 # ---- Stage 2: serve --------------------------------------------------------
 FROM nginx:1.27-alpine
 
-# Remove default nginx config
-RUN rm -f /etc/nginx/conf.d/default.conf
-
-COPY nginx.conf /etc/nginx/templates/app.conf.template
+# Copy our config as default.conf.template — nginx's template system runs
+# envsubst and writes it to /etc/nginx/conf.d/default.conf, overwriting the
+# default server block. No manual rm needed.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-# nginx official image auto-runs envsubst on /etc/nginx/templates/*.template
-# then writes the result to /etc/nginx/conf.d/ before starting nginx
 CMD ["nginx", "-g", "daemon off;"]
