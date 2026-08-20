@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build          # outputs to /app/dist
+RUN npx vite build         # outputs to /app/dist (skips tsc, Vite transpiles TS)
 
 # ---- Stage 2: serve --------------------------------------------------------
 FROM nginx:1.27-alpine
