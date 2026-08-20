@@ -16,7 +16,9 @@ FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 EXPOSE 80
 
-# Substitute only BACKEND_URL, leaving nginx's own $host/$remote_addr etc intact
-CMD ["/bin/sh", "-c", "envsubst '${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/start.sh"]
