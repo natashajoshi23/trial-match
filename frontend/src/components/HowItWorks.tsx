@@ -2,174 +2,133 @@ const NAVY = '#1B3A52'
 
 const PIPELINE = [
   {
-    num: '01',
+    letter: 'A',
     color: NAVY,
-    bg: 'rgba(27,58,82,0.08)',
-    border: 'rgba(27,58,82,0.2)',
-    title: 'Fetch Trials',
-    desc: 'Queries the ClinicalTrials.gov v2 REST API for actively recruiting studies that match the patient\'s primary condition. Results are filtered to RECRUITING status only and paginated up to 200 trials per search.',
-    tech: ['ClinicalTrials.gov v2', 'REST / HTTP', 'Python requests'],
+    bg: 'rgba(27,58,82,0.07)',
+    border: 'rgba(27,58,82,0.18)',
+    title: 'Pull live trials',
+    desc: 'We query ClinicalTrials.gov directly — no cached snapshots. Up to 200 actively recruiting studies for the patient\'s condition, fetched in real time from the official registry.',
+    tech: ['ClinicalTrials.gov v2', 'REST / HTTP'],
   },
   {
-    num: '02',
+    letter: 'B',
     color: '#E8701A',
-    bg: 'rgba(232,112,26,0.08)',
-    border: 'rgba(232,112,26,0.25)',
-    title: 'Semantic Search',
-    desc: 'Encodes the patient\'s full profile into a dense vector using sentence-transformers, then performs approximate nearest-neighbour search over a ChromaDB collection of pre-encoded trial descriptions to surface semantically similar trials.',
-    tech: ['sentence-transformers', 'ChromaDB', 'cosine similarity'],
+    bg: 'rgba(232,112,26,0.07)',
+    border: 'rgba(232,112,26,0.22)',
+    title: 'Find the closest matches',
+    desc: 'The patient\'s full profile gets encoded as a vector and compared against pre-indexed trial descriptions. Trials with structurally similar language and criteria float to the top.',
+    tech: ['sentence-transformers', 'ChromaDB'],
   },
   {
-    num: '03',
-    color: '#C48F00',
-    bg: 'rgba(196,143,0,0.08)',
-    border: 'rgba(196,143,0,0.25)',
-    title: 'Score Eligibility',
-    desc: 'Parses each trial\'s eligibility criteria with spaCy NLP and custom regex rules to extract age bounds, sex requirements, biomarker mentions, and prior treatment history. Hard exclusions collapse the eligibility score near zero.',
-    tech: ['spaCy NLP', 'custom regex rules', 'Python 3.12'],
+    letter: 'C',
+    color: '#2E8B57',
+    bg: 'rgba(46,139,87,0.07)',
+    border: 'rgba(46,139,87,0.22)',
+    title: 'Check the fine print',
+    desc: 'Each trial\'s eligibility criteria is parsed for age cutoffs, sex restrictions, required biomarkers, and prior treatment history. Hard exclusions are flagged before any score is assigned.',
+    tech: ['spaCy NLP', 'custom rule engine'],
   },
   {
-    num: '04',
+    letter: 'D',
     color: '#7C5CFC',
-    bg: 'rgba(124,92,252,0.08)',
-    border: 'rgba(124,92,252,0.22)',
-    title: 'Explain Matches',
-    desc: 'Generates structured, human-readable rationales for each ranked result — why a patient may qualify, which criteria are uncertain, and what would disqualify them. An optional GPT call produces a narrative summary for the top matches.',
-    tech: ['template engine', 'OpenAI API (optional)', 'FastAPI response'],
+    bg: 'rgba(124,92,252,0.07)',
+    border: 'rgba(124,92,252,0.2)',
+    title: 'Write the findings',
+    desc: 'For every ranked result, we generate a plain-language breakdown — what qualifies the patient, what needs to be verified with the site, and what would rule them out entirely.',
+    tech: ['rule templates', 'gpt-4o-mini'],
   },
 ]
-
-const SCORE_COMPONENTS = [
-  {
-    label: 'Semantic relevance',
-    weight: '40%',
-    color: NAVY,
-    gradient: `linear-gradient(90deg, ${NAVY}, #2D5F7C)`,
-    desc: 'Cosine similarity between the patient profile embedding and the trial\'s title + description embedding. Computed via ChromaDB query, ranges 0–1.',
-  },
-  {
-    label: 'Eligibility match',
-    weight: '40%',
-    color: '#E8701A',
-    gradient: 'linear-gradient(90deg, #E8701A, #F5B642)',
-    desc: 'Rule-based score from spaCy NLP. Criteria matches add points; hard exclusions (wrong age, sex, prior therapy) zero out this component entirely.',
-  },
-  {
-    label: 'Geographic proximity',
-    weight: '20%',
-    color: '#22A85A',
-    gradient: 'linear-gradient(90deg, #22A85A, #4ADE80)',
-    desc: 'Inverse distance from the patient\'s ZIP to the nearest trial site. Decays smoothly over distance. Falls back to 0.5 when no location data is available.',
-  },
-]
-
-const TECH = [
-  { name: 'FastAPI', role: 'Backend API framework', color: NAVY, dot: '#1B3A52' },
-  { name: 'React 18 + TypeScript', role: 'Frontend UI', color: NAVY, dot: '#1B3A52' },
-  { name: 'spaCy', role: 'NLP + eligibility parsing', color: '#E8701A', dot: '#E8701A' },
-  { name: 'ChromaDB', role: 'Vector store + ANN search', color: '#E8701A', dot: '#E8701A' },
-  { name: 'sentence-transformers', role: 'Dense text embeddings', color: '#C48F00', dot: '#C48F00' },
-  { name: 'ClinicalTrials.gov v2', role: 'Live recruiting trial data', color: '#22A85A', dot: '#22A85A' },
-]
-
-function SectionHeading({ label, sub }: { label: string; sub: string }) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <p style={{
-        fontSize: '0.65rem', fontWeight: 700,
-        letterSpacing: '0.12em', textTransform: 'uppercase',
-        color: '#8A9BA8', marginBottom: 6,
-      }}>
-        {label}
-      </p>
-      <h3 style={{
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800, fontSize: '1.3rem',
-        color: NAVY, letterSpacing: '-0.02em',
-        lineHeight: 1.2,
-      }}>
-        {sub}
-      </h3>
-    </div>
-  )
-}
-
-function ScoreBarMini({ gradient, value }: { gradient: string; value: number }) {
-  return (
-    <div style={{ height: 4, width: '100%', borderRadius: 999, background: '#E2D9C8', overflow: 'hidden', marginTop: 12 }}>
-      <div style={{ height: 4, width: `${value * 100}%`, borderRadius: 999, background: gradient }} />
-    </div>
-  )
-}
 
 export default function HowItWorks() {
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 0 64px', display: 'flex', flexDirection: 'column', gap: 60 }}>
+    <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 0 64px', display: 'flex', flexDirection: 'column', gap: 56 }}>
 
-      {/* ── Hero ── */}
-      <div style={{ textAlign: 'center' }}>
+      {/* Banner */}
+      <div style={{ width: '100%', height: 260, borderRadius: 20, overflow: 'hidden', background: '#F0EBE3' }}>
+        <img
+          src="/images/research-banner.jpg"
+          alt="Research"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+      </div>
+
+      {/* Hero */}
+      <div>
+        <p style={{
+          fontSize: '0.65rem', fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+          color: '#8A9BA8', marginBottom: 10,
+        }}>How it works</p>
         <h2 style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 800, fontSize: '2rem',
-          letterSpacing: '-0.03em',
-          color: NAVY, marginBottom: 14, lineHeight: 1.15,
+          fontWeight: 800, fontSize: '1.9rem',
+          letterSpacing: '-0.03em', color: NAVY,
+          lineHeight: 1.15, marginBottom: 14, maxWidth: 480,
         }}>
-          Under the Hood
+          From a patient profile to ranked trial matches
         </h2>
-        <p style={{ color: '#4A6070', fontSize: '0.95rem', maxWidth: 520, margin: '0 auto', lineHeight: 1.7 }}>
-          A 4-stage AI pipeline that fetches live trial data, embeds patient profiles,
-          scores eligibility with NLP, and explains every match in plain language.
+        <p style={{ color: '#4A6070', fontSize: '0.92rem', maxWidth: 540, lineHeight: 1.75 }}>
+          Each search runs four steps in sequence — live data retrieval, semantic ranking,
+          eligibility parsing, and plain-language findings — in about 10–20 seconds.
         </p>
       </div>
 
-      {/* ── Pipeline ── */}
+      {/* Pipeline grid */}
       <section>
-        <SectionHeading label="How it works" sub="The 4-Stage Pipeline" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-          {PIPELINE.map(step => (
-            <div key={step.num} style={{
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 16,
+        }}>
+          {PIPELINE.map((step, i) => (
+            <div key={step.letter} style={{
               background: '#FFFFFF',
               border: '1.5px solid #E2D9C8',
               borderRadius: 16,
-              padding: '22px 24px',
-              boxShadow: '0 2px 10px rgba(27,58,82,0.05)',
-              display: 'flex', flexDirection: 'column', gap: 12,
+              padding: '24px 28px',
+              display: 'flex',
+              flexDirection: 'column' as const,
+              gap: 12,
+              position: 'relative' as const,
             }}>
-              {/* Number badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                  background: step.bg, border: `1.5px solid ${step.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <span style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontWeight: 800, fontSize: '0.78rem',
-                    color: step.color,
-                  }}>
-                    {step.num}
-                  </span>
-                </div>
+              {/* Step letter badge */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28, height: 28,
+                borderRadius: 8,
+                background: step.bg,
+                border: `1px solid ${step.border}`,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 800, fontSize: '0.75rem',
+                color: step.color,
+                flexShrink: 0,
+                alignSelf: 'flex-start' as const,
+              }}>
+                {step.letter}
+              </div>
+
+              <div>
                 <h4 style={{
                   fontWeight: 800, fontSize: '0.95rem',
                   color: NAVY, letterSpacing: '-0.01em',
+                  marginBottom: 8,
                 }}>
                   {step.title}
                 </h4>
+                <p style={{ fontSize: '0.82rem', color: '#4A6070', lineHeight: 1.75 }}>
+                  {step.desc}
+                </p>
               </div>
 
-              <p style={{ fontSize: '0.82rem', color: '#4A6070', lineHeight: 1.7, flex: 1 }}>
-                {step.desc}
-              </p>
-
-              {/* Tech tags */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginTop: 4 }}>
                 {step.tech.map(t => (
                   <span key={t} style={{
-                    fontSize: '0.65rem', fontWeight: 600,
+                    fontSize: '0.64rem', fontWeight: 600,
                     padding: '3px 9px', borderRadius: 999,
-                    background: step.bg,
-                    border: `1px solid ${step.border}`,
+                    background: step.bg, border: `1px solid ${step.border}`,
                     color: step.color,
                     fontFamily: "'JetBrains Mono', monospace",
                   }}>
@@ -177,74 +136,99 @@ export default function HowItWorks() {
                   </span>
                 ))}
               </div>
+
+              {/* Connector to next card */}
+              {i < PIPELINE.length - 1 && (
+                <div style={{
+                  position: 'absolute' as const,
+                  ...(i % 2 === 0
+                    ? { right: -9, top: '50%', transform: 'translateY(-50%)' }
+                    : { bottom: -9, left: '50%', transform: 'translateX(-50%)' }
+                  ),
+                  width: i % 2 === 0 ? 16 : 1,
+                  height: i % 2 === 0 ? 1 : 16,
+                  background: '#D0C8BC',
+                  zIndex: 1,
+                }} />
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Scoring ── */}
-      <section>
-        <SectionHeading label="Ranking algorithm" sub="How Matches are Scored" />
-
-        {/* Formula block */}
+      {/* Context strip */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        borderRadius: 16, overflow: 'hidden',
+        border: '1.5px solid #E2D9C8',
+      }}>
+        <img
+          src="/images/trial-consult.jpg"
+          alt="Doctor with patient"
+          style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
         <div style={{
-          background: '#F7F3EC',
-          border: '1.5px solid #E2D9C8',
-          borderRadius: 14,
-          padding: '16px 24px',
-          marginBottom: 20,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '0.85rem',
-          color: '#8A9BA8',
-          letterSpacing: '0.02em',
-          textAlign: 'center',
+          background: NAVY, padding: '28px 32px',
+          display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', gap: 10,
         }}>
-          <span style={{ color: '#8A9BA8' }}>final_score = </span>
-          <span style={{ color: NAVY, fontWeight: 700 }}>0.40</span>
-          <span style={{ color: '#8A9BA8' }}> × semantic + </span>
-          <span style={{ color: '#E8701A', fontWeight: 700 }}>0.40</span>
-          <span style={{ color: '#8A9BA8' }}> × eligibility + </span>
-          <span style={{ color: '#22A85A', fontWeight: 700 }}>0.20</span>
-          <span style={{ color: '#8A9BA8' }}> × geo</span>
+          <p style={{
+            fontSize: '0.65rem', fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+            color: 'rgba(255,255,255,0.4)',
+          }}>Why it matters</p>
+          <p style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 700, fontSize: '0.95rem',
+            color: '#FFFFFF', lineHeight: 1.55,
+          }}>
+            Most patients never find the trial they qualify for. Cohort closes that gap with real data and structured eligibility checking.
+          </p>
         </div>
+      </div>
 
-        {/* Score component cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-          {SCORE_COMPONENTS.map(c => (
-            <div key={c.label} style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #E2D9C8',
-              borderRadius: 14,
-              padding: '18px 20px',
-              boxShadow: '0 2px 10px rgba(27,58,82,0.05)',
+      {/* Scoring */}
+      <section>
+        <p style={{
+          fontSize: '0.65rem', fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+          color: '#8A9BA8', marginBottom: 6,
+        }}>Ranking algorithm</p>
+        <h3 style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontWeight: 800, fontSize: '1.3rem',
+          color: NAVY, letterSpacing: '-0.02em',
+          lineHeight: 1.2, marginBottom: 20,
+        }}>
+          How matches are scored
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, marginBottom: 20 }}>
+          {[
+            { label: 'Semantic relevance', weight: '40%', desc: 'How closely the trial description matches the patient profile using vector embeddings.', color: NAVY, bg: 'rgba(27,58,82,0.06)', bar: NAVY },
+            { label: 'Eligibility', weight: '40%', desc: 'NLP rules check age, sex, biomarkers, and prior treatments against the trial criteria.', color: '#E8701A', bg: 'rgba(232,112,26,0.06)', bar: '#E8701A' },
+            { label: 'Geographic proximity', weight: '20%', desc: 'Straight-line distance from the patient\'s ZIP to the nearest trial site.', color: '#2E8B57', bg: 'rgba(46,139,87,0.06)', bar: '#2E8B57' },
+          ].map(row => (
+            <div key={row.label} style={{
+              display: 'grid', gridTemplateColumns: '160px 40px 1fr',
+              alignItems: 'center', gap: 16,
+              padding: '14px 18px',
+              borderRadius: 10, background: row.bg,
+              border: `1px solid ${row.bg.replace('0.06', '0.18')}`,
             }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-                <p style={{
-                  fontWeight: 800, fontSize: '0.82rem', color: c.color,
-                  letterSpacing: '-0.01em',
-                }}>
-                  {c.label}
-                </p>
-                <span style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontWeight: 800, fontSize: '1.1rem', color: c.color,
-                }}>
-                  {c.weight}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#4A6070', lineHeight: 1.6 }}>
-                {c.desc}
-              </p>
-              <ScoreBarMini gradient={c.gradient} value={c.label === 'Geographic proximity' ? 0.2 : 0.4} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: row.color }}>{row.label}</span>
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '0.78rem', fontWeight: 800,
+                color: row.color, opacity: 0.8,
+              }}>{row.weight}</span>
+              <span style={{ fontSize: '0.78rem', color: '#4A6070', lineHeight: 1.6 }}>{row.desc}</span>
             </div>
           ))}
         </div>
 
-        {/* Hard exclusion note */}
         <div style={{
-          marginTop: 14,
-          padding: '12px 18px',
-          borderRadius: 10,
+          padding: '14px 18px', borderRadius: 10,
           background: 'rgba(192,58,43,0.04)',
           border: '1px solid rgba(192,58,43,0.18)',
           display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -253,94 +237,8 @@ export default function HowItWorks() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
           <p style={{ fontSize: '0.78rem', color: '#4A6070', lineHeight: 1.6 }}>
-            <strong style={{ color: '#C03A2B' }}>Hard exclusions</strong> — when a trial explicitly rules out a patient's age range, biological sex, or a prior therapy, the eligibility score collapses to near-zero and the trial is shown in a separate "excluded" section regardless of semantic score.
+            <strong style={{ color: '#C03A2B' }}>Hard exclusions</strong> — when a trial explicitly rules out the patient's age, sex, or a prior therapy, the eligibility score collapses to near-zero and the trial is moved to a separate excluded section regardless of how well it matches semantically.
           </p>
-        </div>
-      </section>
-
-      {/* ── Tech Stack ── */}
-      <section>
-        <SectionHeading label="Built with" sub="Tech Stack" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {TECH.map(t => (
-            <div key={t.name} style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #E2D9C8',
-              borderRadius: 12,
-              padding: '16px 18px',
-              display: 'flex', alignItems: 'center', gap: 12,
-              boxShadow: '0 1px 6px rgba(27,58,82,0.05)',
-            }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: t.dot, flexShrink: 0,
-                boxShadow: `0 0 6px ${t.dot}60`,
-              }} />
-              <div style={{ minWidth: 0 }}>
-                <p style={{
-                  fontWeight: 700, fontSize: '0.82rem',
-                  color: NAVY,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {t.name}
-                </p>
-                <p style={{ fontSize: '0.7rem', color: '#8A9BA8', marginTop: 2 }}>
-                  {t.role}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Data flow ── */}
-      <section>
-        <SectionHeading label="Data flow" sub="Request Lifecycle" />
-        <div style={{
-          background: '#FFFFFF',
-          border: '1.5px solid #E2D9C8',
-          borderRadius: 16,
-          padding: '28px 32px',
-          boxShadow: '0 2px 10px rgba(27,58,82,0.05)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
-            {[
-              { label: 'Patient input', sub: 'React form', color: NAVY },
-              { label: 'POST /match', sub: 'FastAPI endpoint', color: NAVY },
-              { label: 'ClinicalTrials.gov', sub: 'v2 REST API', color: '#E8701A' },
-              { label: 'ChromaDB', sub: 'Vector search', color: '#E8701A' },
-              { label: 'spaCy NLP', sub: 'Eligibility rules', color: '#C48F00' },
-              { label: 'Ranked results', sub: 'JSON response', color: '#22A85A' },
-            ].map((node, i, arr) => (
-              <div key={node.label} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{
-                    padding: '7px 14px', borderRadius: 8,
-                    background: `${node.color}0D`,
-                    border: `1.5px solid ${node.color}30`,
-                  }}>
-                    <p style={{
-                      fontWeight: 700, fontSize: '0.72rem',
-                      color: node.color, whiteSpace: 'nowrap',
-                    }}>
-                      {node.label}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '0.6rem', color: '#8A9BA8', whiteSpace: 'nowrap' }}>
-                    {node.sub}
-                  </p>
-                </div>
-                {i < arr.length - 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', margin: '0 6px', paddingBottom: 18 }}>
-                    <div style={{ width: 20, height: 1, background: '#DDD5C0' }} />
-                    <svg width="5" height="7" viewBox="0 0 6 8" fill="none" style={{ marginLeft: -1 }}>
-                      <path d="M0 0L6 4L0 8" stroke="#DDD5C0" strokeWidth="1.5" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 

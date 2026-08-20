@@ -8,10 +8,16 @@ interface Props {
 }
 
 const COUNTRIES = [
-  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany',
-  'France', 'Netherlands', 'Spain', 'Italy', 'Switzerland', 'Belgium',
-  'Japan', 'South Korea', 'China', 'India', 'Brazil', 'Mexico',
-  'Sweden', 'Denmark', 'Norway', 'Israel', 'Singapore',
+  'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Canada',
+  'Chile', 'China', 'Colombia', 'Czech Republic', 'Denmark', 'Egypt',
+  'Finland', 'France', 'Germany', 'Greece', 'Hong Kong', 'Hungary',
+  'India', 'Indonesia', 'Ireland', 'Israel', 'Italy', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Lebanon', 'Malaysia', 'Mexico', 'Morocco',
+  'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Peru', 'Philippines',
+  'Poland', 'Portugal', 'Romania', 'Russia', 'Saudi Arabia', 'Singapore',
+  'South Africa', 'South Korea', 'Spain', 'Sweden', 'Switzerland', 'Taiwan',
+  'Thailand', 'Turkey', 'UAE', 'Ukraine', 'United Kingdom', 'United States',
+  'Vietnam',
 ]
 
 const EMPTY: PatientProfile = {
@@ -56,8 +62,52 @@ const fieldLabel: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: '#8A9BA8',
+  color: '#0D1F2D',
   marginBottom: 8,
+}
+
+function InfoTooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 5 }}>
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={() => setVisible(v => !v)}
+        aria-label="More information"
+        style={{
+          width: 15, height: 15, borderRadius: 999,
+          border: '1.5px solid #C8BFB0', background: 'transparent',
+          color: '#8A9BA8', fontSize: '0.58rem', fontWeight: 800,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', lineHeight: 1, fontFamily: 'Georgia, serif',
+          flexShrink: 0,
+        }}
+      >i</button>
+      {visible && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#1B3A52', color: '#FFFFFF',
+          borderRadius: 10, padding: '10px 14px',
+          fontSize: '0.71rem', lineHeight: 1.65, width: 240,
+          boxShadow: '0 4px 20px rgba(27,58,82,0.25)',
+          zIndex: 200, pointerEvents: 'none',
+          whiteSpace: 'normal', textAlign: 'left',
+          textTransform: 'none', letterSpacing: 'normal', fontWeight: 400,
+        }}>
+          {text}
+          <div style={{
+            position: 'absolute', top: '100%', left: '50%',
+            transform: 'translateX(-50%)',
+            borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+            borderTop: '6px solid #1B3A52',
+          }} />
+        </div>
+      )}
+    </span>
+  )
 }
 
 // Navy = #1B3A52  used everywhere violet used to be
@@ -114,7 +164,7 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
                   padding: '12px 8px',
                   border: active ? `1.5px solid ${NAVY}` : '1.5px solid #DDD5C0',
                   background: active ? NAVY_BG : '#FFFFFF',
-                  color: active ? NAVY : '#8A9BA8',
+                  color: active ? NAVY : '#2C3E50',
                   cursor: 'pointer',
                   fontSize: '0.8rem',
                   fontWeight: 700,
@@ -134,12 +184,13 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
 
       {/* Age stepper */}
       <div>
-        <p style={fieldLabel}>Age</p>
+        <p style={fieldLabel}>Age *</p>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
-          background: '#F7F3EC',
-          border: '1.5px solid #DDD5C0',
+          background: '#FFFFFF',
+          border: `1.5px solid ${p.age === 0 ? '#C03A2B' : '#DDD5C0'}`,
           borderRadius: 12, padding: '8px 14px',
+          boxShadow: '0 1px 3px rgba(27,58,82,0.06)',
         }}>
           <button
             type="button"
@@ -176,7 +227,8 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
             style={{
               flex: 1, textAlign: 'center',
               fontSize: '1.6rem', fontWeight: 800,
-              color: NAVY, letterSpacing: '-0.02em',
+              color: p.age === 0 ? '#C4B8A8' : NAVY,
+              letterSpacing: '-0.02em',
               fontFamily: "'JetBrains Mono', monospace",
               border: 'none', background: 'transparent',
               outline: 'none', width: 0, minWidth: 0,
@@ -197,6 +249,11 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
             onMouseLeave={e => { (e.currentTarget.style.background = '#FFFFFF') }}
           >+</button>
         </div>
+        {p.age === 0 && (
+          <p style={{ fontSize: '0.72rem', color: '#C03A2B', marginTop: 5, marginLeft: 2 }}>
+            Age is required
+          </p>
+        )}
       </div>
 
       {/* Condition */}
@@ -205,17 +262,22 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
         <FocusInput
           type="text"
           required
-          placeholder="e.g. HER2-positive breast cancer"
+          placeholder="e.g. Type 2 diabetes, Crohn's disease, breast cancer"
           value={p.condition}
           onChange={e => set('condition', e.target.value)}
         />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {[
-            'Non-small cell lung cancer',
-            'Glioblastoma',
             'Type 2 diabetes',
-            'Prostate cancer',
+            'Iron deficiency anemia',
+            'Crohn\'s disease',
+            'Non-small cell lung cancer',
+            'Rheumatoid arthritis',
             'HER2+ breast cancer',
+            'Prostate cancer',
+            'Multiple sclerosis',
+            'Glioblastoma',
+            'Heart failure',
           ].map(c => (
             <button
               key={c}
@@ -228,7 +290,7 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
                 borderRadius: 999,
                 border: `1px solid ${p.condition === c ? NAVY_BORDER : 'rgba(27,58,82,0.18)'}`,
                 background: p.condition === c ? NAVY_BG : 'transparent',
-                color: p.condition === c ? NAVY : '#6B8291',
+                color: p.condition === c ? NAVY : '#2C3E50',
                 cursor: 'pointer',
                 transition: 'all 0.12s',
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -242,7 +304,7 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
               onMouseLeave={e => {
                 if (p.condition !== c) {
                   e.currentTarget.style.borderColor = 'rgba(27,58,82,0.18)'
-                  e.currentTarget.style.color = '#6B8291'
+                  e.currentTarget.style.color = '#2C3E50'
                 }
               }}
             >
@@ -281,11 +343,11 @@ function StepProfile({ p, set }: { p: PatientProfile; set: (k: keyof PatientProf
 
       {/* Postal code */}
       <div>
-        <p style={fieldLabel}>Postal code *</p>
+        <p style={fieldLabel}>Postal code {p.country === 'United States' ? '*' : <span style={{ fontWeight: 400, color: '#8A9BA8', textTransform: 'none', letterSpacing: 0 }}>(optional — used for distance scoring)</span>}</p>
         <FocusInput
           type="text"
-          required
-          placeholder={p.country === 'United States' ? 'e.g. 10001' : p.country === 'United Kingdom' ? 'e.g. SW1A 1AA' : p.country === 'Canada' ? 'e.g. M5V 3A4' : 'Postal code'}
+          required={p.country === 'United States'}
+          placeholder={p.country === 'United States' ? 'e.g. 10001' : p.country === 'United Kingdom' ? 'e.g. SW1A 1AA' : p.country === 'Canada' ? 'e.g. M5V 3A4' : 'Optional'}
           value={p.zip_code}
           onChange={e => set('zip_code', e.target.value)}
         />
@@ -300,7 +362,10 @@ function StepClinical({ p, set }: { p: PatientProfile; set: (k: keyof PatientPro
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* ECOG cards */}
       <div>
-        <p style={fieldLabel}>ECOG performance status</p>
+        <p style={{ ...fieldLabel, display: 'flex', alignItems: 'center' }}>
+          ECOG performance status
+          <InfoTooltip text="A 0–4 scale used in oncology to assess how a patient's disease affects daily life. 0 = fully active, no restrictions. 4 = completely disabled and confined to bed. Many clinical trials restrict enrollment based on ECOG score — trials for aggressive treatments often require 0 or 1." />
+        </p>
         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
           {[null, ...ECOG_OPTIONS.map(o => o.score)].map((val) => {
             const active = p.ecog_status === val
@@ -316,7 +381,7 @@ function StepClinical({ p, set }: { p: PatientProfile; set: (k: keyof PatientPro
                   borderRadius: 10,
                   border: active ? `1.5px solid ${NAVY}` : '1.5px solid #DDD5C0',
                   background: active ? NAVY_BG : '#FFFFFF',
-                  color: active ? NAVY : '#8A9BA8',
+                  color: active ? NAVY : '#2C3E50',
                   cursor: 'pointer',
                   fontSize: '1rem', fontWeight: 800,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
@@ -340,10 +405,34 @@ function StepClinical({ p, set }: { p: PatientProfile; set: (k: keyof PatientPro
         )}
       </div>
 
-      <TagInput label="Biomarkers" placeholder="HER2+, ER-, BRCA1 …" tags={p.biomarkers} onChange={v => set('biomarkers', v)} />
-      <TagInput label="Current medications" placeholder="trastuzumab, letrozole …" tags={p.current_medications} onChange={v => set('current_medications', v)} />
-      <TagInput label="Prior treatments" placeholder="surgery, radiation …" tags={p.prior_treatments} onChange={v => set('prior_treatments', v)} />
-      <TagInput label="Comorbidities" placeholder="hypertension, diabetes …" tags={p.comorbidities} onChange={v => set('comorbidities', v)} />
+      <TagInput
+        label="Biomarkers"
+        placeholder="HER2+, ER-, BRCA1 …"
+        tags={p.biomarkers}
+        onChange={v => set('biomarkers', v)}
+        info="Measurable biological indicators — proteins, genes, or mutations — found in blood, tissue, or other fluids. Examples: HER2+ means the tumour overexpresses the HER2 protein; BRCA1 is a gene mutation. Trials often target specific biomarkers for eligibility."
+      />
+      <TagInput
+        label="Current medications"
+        placeholder="trastuzumab, letrozole …"
+        tags={p.current_medications}
+        onChange={v => set('current_medications', v)}
+        info="Drugs the patient is actively taking right now. Some trials prohibit certain concurrent medications due to interactions, while others require patients to be on a specific drug. Include both brand and generic names if known."
+      />
+      <TagInput
+        label="Prior treatments"
+        placeholder="surgery, radiation …"
+        tags={p.prior_treatments}
+        onChange={v => set('prior_treatments', v)}
+        info="Therapies the patient has already received, such as surgery, chemotherapy, radiation, or targeted therapy. Many trials specifically require patients to have tried certain treatments first, or exclude patients who have received specific prior therapies."
+      />
+      <TagInput
+        label="Comorbidities"
+        placeholder="hypertension, diabetes …"
+        tags={p.comorbidities}
+        onChange={v => set('comorbidities', v)}
+        info="Other medical conditions the patient has alongside their primary diagnosis — for example hypertension, diabetes, or kidney disease. Some trials exclude patients with certain comorbidities if those conditions could interfere with the treatment or skew results."
+      />
 
       <div>
         <p style={fieldLabel}>Additional notes</p>
@@ -522,7 +611,7 @@ function StepDots({ step, total }: { step: number; total: number }) {
             <div style={{
               width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
               border: active || done ? `2px solid ${NAVY}` : '2px solid #DDD5C0',
-              background: active ? NAVY : done ? NAVY_BG : '#FFFFFF',
+              background: active || done ? NAVY : '#FFFFFF',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: active ? `0 0 10px ${NAVY_SHADOW}` : 'none',
               transition: 'all .3s',
@@ -574,7 +663,7 @@ export default function PatientForm({ onSubmit, loading }: Props) {
 
   const loadDemo = () => { setP(DEMO); setMaxDist('') }
 
-  const canNext = step === 0 ? p.condition.trim() !== '' && p.zip_code.trim() !== '' : true
+  const canNext = step === 0 ? p.condition.trim() !== '' && p.age > 0 && (p.country !== 'United States' || p.zip_code.trim() !== '') : true
 
   const stepTitles = ['Patient Profile', 'Clinical Details', 'Search Settings']
   const stepSubs = ['Core patient information', 'Optional clinical data', 'Configure & launch']
@@ -586,8 +675,8 @@ export default function PatientForm({ onSubmit, loading }: Props) {
         background: '#FFFFFF',
         borderRadius: 20,
         border: '1.5px solid #E2D9C8',
-        overflow: 'hidden',
         boxShadow: '0 4px 24px rgba(27,58,82,0.1)',
+        overflow: 'visible',
       }}
     >
       {/* Top header */}
@@ -595,13 +684,28 @@ export default function PatientForm({ onSubmit, loading }: Props) {
         padding: '18px 22px 16px',
         background: `linear-gradient(135deg, ${NAVY_BG} 0%, rgba(245,182,66,0.04) 100%)`,
         borderBottom: '1.5px solid #E2D9C8',
+        borderRadius: '18px 18px 0 0',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+        position: 'relative', overflow: 'hidden',
       }}>
-        <div>
-          <h2 style={{ fontWeight: 800, fontSize: '0.95rem', color: NAVY, letterSpacing: '-0.01em' }}>
+        <img
+          src="/images/lab-work.jpg"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', opacity: 0.75,
+            pointerEvents: 'none',
+          }}
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,20,30,0.45)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative' }}>
+          <h2 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#FFFFFF', letterSpacing: '-0.01em' }}>
             {stepTitles[step]}
           </h2>
-          <p style={{ fontSize: '0.7rem', color: '#8A9BA8', marginTop: 3 }}>{stepSubs[step]}</p>
+          <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)', marginTop: 3, fontWeight: 500 }}>{stepSubs[step]}</p>
         </div>
         <button
           type="button"
@@ -609,11 +713,12 @@ export default function PatientForm({ onSubmit, loading }: Props) {
           style={{
             fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.04em',
             padding: '5px 11px', borderRadius: 999,
-            background: NAVY_BG,
-            border: `1.5px solid ${NAVY_BORDER}`,
-            color: NAVY, cursor: 'pointer',
+            background: 'rgba(255,255,255,0.2)',
+            border: '1.5px solid rgba(255,255,255,0.5)',
+            color: '#FFFFFF', cursor: 'pointer',
             transition: 'all .15s', flexShrink: 0,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
+            position: 'relative',
           }}
           onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(27,58,82,0.15)') }}
           onMouseLeave={e => { (e.currentTarget.style.background = NAVY_BG) }}

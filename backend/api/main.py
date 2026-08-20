@@ -35,7 +35,10 @@ from backend.explainability.explainer import MatchExplainer
 from backend.geo.geo_service import GeoService
 from backend.embeddings.vector_store import SemanticResult
 
-from .models import MatchRequest, MatchResponse, TrialMatchResult
+from .models import (
+    MatchRequest, MatchResponse, TrialMatchResult,
+    ResearcherSearchRequest, ResearcherSearchResponse, TrialSiteResult, SiteContactResult,
+)
 from .dependencies import (
     get_fetcher, get_embed_svc, get_vector_store,
     get_parser, get_scorer, get_explainer, get_geo,
@@ -132,7 +135,7 @@ async def match_trials(
     patient = body.patient
 
     # Step 1: Geocode
-    patient_lat, patient_lon = await geo.patient_coordinates(patient.zip_code, patient.country)
+    patient_lat, patient_lon = await geo.patient_coordinates(patient.zip_code, patient.country) if patient.zip_code.strip() else (None, None)
 
     # Step 2: Fetch
     try:
@@ -159,8 +162,9 @@ async def match_trials(
     patient_text = profile_to_narrative(patient)
     patient_embedding = await embed_svc.embed(patient_text)
 
-    # Step 5: Semantic search — over-fetch to allow post-scoring re-ranking
-    n_candidates = min(body.top_k * _CANDIDATE_MULTIPLIER, _MAX_CANDIDATES)
+    # Step 5: Semantic search — always fetch the full candidate pool so that
+    # changing top_k doesn't change which trials enter the scoring pipeline.
+    n_candidates = _MAX_CANDIDATES
     candidates: list[SemanticResult] = vector_store.query(
         patient_embedding, top_k=n_candidates
     )
@@ -203,6 +207,10 @@ async def match_trials(
             conditions=trial.conditions,
             locations_count=len(trial.locations),
             countries_at_sites=site_countries,
+            minimum_age=trial.minimum_age,
+            maximum_age=trial.maximum_age,
+            start_date=trial.start_date,
+            primary_completion_date=trial.primary_completion_date,
         ))
 
     # Step 7: Sort by final_score descending
@@ -215,10 +223,178 @@ async def match_trials(
             if r.distance_miles is None or r.distance_miles <= body.max_distance_miles
         ]
 
+    # Return top_k eligible + all hard-excluded (shown separately in the UI)
+    eligible = [r for r in results if not r.hard_excluded]
+    excluded = [r for r in results if r.hard_excluded]
+    matches = eligible[: body.top_k] + excluded
+
     return MatchResponse(
-        matches=results[: body.top_k],
+        matches=matches,
         total_trials_fetched=len(trials),
         total_trials_scored=len(results),
         patient_lat=patient_lat,
         patient_lon=patient_lon,
+    )
+
+
+@app.post("/api/find-sites", response_model=ResearcherSearchResponse, tags=["researcher"])
+async def find_sites(
+    body: ResearcherSearchRequest,
+    fetcher: TrialFetcher = Depends(get_fetcher),
+    geo: GeoService = Depends(get_geo),
+) -> ResearcherSearchResponse:
+    """
+    Find clinical trial sites for researchers / students looking to work in trials.
+
+    Returns trials sorted by proximity to the researcher, with contact information
+    (investigators, site contacts, central contacts) for each trial.
+    """
+    import math
+
+    geo_is_centroid = False
+    if body.zip_code.strip():
+        patient_lat, patient_lon, geo_is_centroid = await geo.patient_coordinates_ex(body.zip_code, body.country)
+    else:
+        patient_lat, patient_lon = None, None
+
+    # Fetch for each condition and merge (deduplicate by NCT ID)
+    seen_ids: set[str] = set()
+    trials = []
+    for cond in body.conditions:
+        try:
+            fetched = await fetcher.fetch(cond)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail=f"Could not reach clinicaltrials.gov: {exc}")
+        for t in fetched:
+            if t.nct_id not in seen_ids:
+                seen_ids.add(t.nct_id)
+                trials.append(t)
+
+    if not trials:
+        return ResearcherSearchResponse(results=[], total_fetched=0,
+                                        patient_lat=patient_lat, patient_lon=patient_lon)
+
+    def haversine_miles(lat1, lon1, lat2, lon2):
+        R = 3958.8
+        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    results: list[TrialSiteResult] = []
+    for trial in trials:
+        # Phase filter — EARLY_PHASE1 counts as Phase 1; NA excluded when filter is set
+        if body.phases:
+            trial_phases_set: set[str] = set()
+            for p in trial.phases:
+                p_norm = p.upper().replace(" ", "").replace("_", "").replace("-", "")
+                trial_phases_set.add(p_norm)
+                if "EARLYPHASE1" in p_norm or p_norm == "EARLYPHASE":
+                    trial_phases_set.add("PHASE1")
+            requested = {p.upper().replace(" ", "").replace("_", "").replace("-", "") for p in body.phases}
+            if not trial_phases_set & requested:
+                continue
+
+        # Sponsor type filter — null sponsor_type excluded when filter is set
+        if body.sponsor_types:
+            if not trial.sponsor_type or trial.sponsor_type.upper() not in [s.upper() for s in body.sponsor_types]:
+                continue
+
+        # Study type filter — null study_type excluded when filter is set
+        if body.study_types:
+            if not trial.study_type or trial.study_type.upper() not in [s.upper() for s in body.study_types]:
+                continue
+
+        # Intervention type filter — empty intervention_types excluded when filter is set
+        if body.intervention_types:
+            if not trial.intervention_types:
+                continue
+            trial_iv_types = [t.upper() for t in trial.intervention_types]
+            if not any(iv.upper() in trial_iv_types for iv in body.intervention_types):
+                continue
+
+        # Healthy volunteers filter
+        if body.healthy_volunteers_only and not trial.healthy_volunteers:
+            continue
+
+        # Find nearest site (fall back to first site with a facility name if no coords)
+        nearest_loc = None
+        nearest_dist: Optional[float] = None
+        if patient_lat is not None and patient_lon is not None:
+            for loc in trial.locations:
+                if loc.lat is not None and loc.lon is not None:
+                    d = haversine_miles(patient_lat, patient_lon, loc.lat, loc.lon)
+                    if nearest_dist is None or d < nearest_dist:
+                        nearest_dist = d
+                        nearest_loc = loc
+        if nearest_loc is None and trial.locations:
+            # No distance available — pick the first location with a facility name
+            nearest_loc = next((l for l in trial.locations if l.facility), trial.locations[0])
+
+        # Distance filter — skip when geocoding fell back to a country centroid
+        # (centroid distances are meaningless and would filter out everything)
+        if body.max_distance_miles is not None and not geo_is_centroid:
+            if nearest_dist is None or nearest_dist > body.max_distance_miles:
+                continue
+
+        site_contacts = [
+            SiteContactResult(name=c.name, role=c.role, phone=c.phone, email=c.email)
+            for c in (nearest_loc.contacts if nearest_loc else [])
+        ]
+        overall_contacts = [
+            SiteContactResult(name=c.name, role=c.role, phone=c.phone, email=c.email)
+            for c in trial.overall_contacts
+        ]
+        investigators = [
+            SiteContactResult(name=c.name, role=c.role, phone=c.phone, email=c.email)
+            for c in trial.investigators
+        ]
+
+        countries = sorted({loc.country for loc in trial.locations if loc.country})
+
+        results.append(TrialSiteResult(
+            nct_id=trial.nct_id,
+            brief_title=trial.brief_title,
+            overall_status=trial.overall_status,
+            phases=trial.phases,
+            conditions=trial.conditions,
+            brief_summary=trial.brief_summary,
+            start_date=trial.start_date,
+            primary_completion_date=trial.primary_completion_date,
+            healthy_volunteers=trial.healthy_volunteers,
+            minimum_age=trial.minimum_age,
+            maximum_age=trial.maximum_age,
+            nearest_facility=nearest_loc.facility if nearest_loc else None,
+            nearest_city=nearest_loc.city if nearest_loc else None,
+            nearest_state=nearest_loc.state if nearest_loc else None,
+            nearest_country=nearest_loc.country if nearest_loc else None,
+            nearest_distance_miles=round(nearest_dist, 1) if nearest_dist is not None else None,
+            nearest_lat=nearest_loc.lat if nearest_loc else None,
+            nearest_lon=nearest_loc.lon if nearest_loc else None,
+            site_contacts=site_contacts,
+            overall_contacts=overall_contacts,
+            investigators=investigators,
+            total_sites=len(trial.locations),
+            countries_at_sites=countries,
+            sponsor_type=trial.sponsor_type,
+            study_type=trial.study_type,
+            intervention_types=trial.intervention_types,
+        ))
+
+    # Sort by distance (trials with no distance go last)
+    results.sort(key=lambda r: r.nearest_distance_miles if r.nearest_distance_miles is not None else float("inf"))
+
+    geo_warning = (
+        "Couldn't precisely locate your postal code — showing all results without distance filtering."
+        if geo_is_centroid and body.max_distance_miles is not None and body.zip_code.strip()
+        else None
+    )
+
+    return ResearcherSearchResponse(
+        results=results[: body.top_k],
+        total_fetched=len(trials),
+        patient_lat=patient_lat,
+        patient_lon=patient_lon,
+        geo_warning=geo_warning,
     )

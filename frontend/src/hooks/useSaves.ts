@@ -1,13 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { TrialMatchResult } from '../types'
 
-export interface SavedTrial {
-  nct_id: string
-  brief_title: string
-  final_score: number
-  headline: string
-  hard_excluded: boolean
-  phases: string[]
+export interface SavedTrial extends TrialMatchResult {
   savedAt: number
   patientLabel: string
   notes: string
@@ -21,8 +15,23 @@ function normalize(s: Partial<SavedTrial>): SavedTrial {
     brief_title: s.brief_title ?? '',
     final_score: s.final_score ?? 0,
     headline: s.headline ?? '',
+    summary: s.summary ?? '',
+    why_eligible: s.why_eligible ?? [],
+    why_uncertain: s.why_uncertain ?? [],
+    why_excluded: s.why_excluded ?? [],
+    score_breakdown: s.score_breakdown ?? { semantic: 0, eligibility: 0, geo: 0, final: 0 },
+    distance_miles: s.distance_miles ?? null,
     hard_excluded: s.hard_excluded ?? false,
+    llm_narrative: s.llm_narrative ?? null,
+    overall_status: s.overall_status ?? null,
     phases: s.phases ?? [],
+    conditions: s.conditions ?? [],
+    locations_count: s.locations_count ?? 0,
+    countries_at_sites: s.countries_at_sites ?? [],
+    minimum_age: s.minimum_age ?? null,
+    maximum_age: s.maximum_age ?? null,
+    start_date: s.start_date ?? null,
+    primary_completion_date: s.primary_completion_date ?? null,
     savedAt: s.savedAt ?? Date.now(),
     patientLabel: s.patientLabel ?? '',
     notes: s.notes ?? '',
@@ -52,17 +61,7 @@ export function useSaves() {
   const save = useCallback((trial: TrialMatchResult) => {
     setSaves(prev => {
       if (prev.some(s => s.nct_id === trial.nct_id)) return prev
-      const next: SavedTrial[] = [{
-        nct_id: trial.nct_id,
-        brief_title: trial.brief_title,
-        final_score: trial.final_score,
-        headline: trial.headline,
-        hard_excluded: trial.hard_excluded,
-        phases: trial.phases,
-        savedAt: Date.now(),
-        patientLabel: '',
-        notes: '',
-      }, ...prev]
+      const next: SavedTrial[] = [{ ...trial, savedAt: Date.now(), patientLabel: '', notes: '' }, ...prev]
       persist(next)
       return next
     })

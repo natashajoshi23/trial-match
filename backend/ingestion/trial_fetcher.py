@@ -15,7 +15,7 @@ from typing import Optional
 
 import httpx
 
-from .models import RawTrial, TrialLocation
+from .models import RawTrial, SiteContact, TrialLocation
 
 CTGOV_BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
@@ -135,15 +135,24 @@ class TrialFetcher:
 
         status_mod = ps.get("statusModule", {})
         start_date_struct = status_mod.get("startDateStruct") or {}
+        completion_date_struct = status_mod.get("primaryCompletionDateStruct") or {}
 
         desc_mod = ps.get("descriptionModule", {})
         elig_mod = ps.get("eligibilityModule", {})
         cond_mod = ps.get("conditionsModule", {})
         design_mod = ps.get("designModule", {})
+        sponsor_mod = ps.get("sponsorCollaboratorsModule", {})
+        arms_mod = ps.get("armsInterventionsModule", {})
 
-        locations_raw = (
-            ps.get("contactsLocationsModule", {}).get("locations", [])
-        )
+        contacts_mod = ps.get("contactsLocationsModule", {})
+        locations_raw = contacts_mod.get("locations", [])
+        central_contacts_raw = contacts_mod.get("centralContacts", [])
+        officials_raw = contacts_mod.get("overallOfficials", [])
+
+        lead_sponsor = sponsor_mod.get("leadSponsor", {})
+        intervention_types = list({
+            iv.get("type") for iv in arms_mod.get("interventions", []) if iv.get("type")
+        })
 
         return RawTrial(
             nct_id=nct_id,
@@ -160,13 +169,41 @@ class TrialFetcher:
             overall_status=status_mod.get("overallStatus"),
             locations=self._parse_locations(locations_raw),
             start_date=start_date_struct.get("date"),
+            primary_completion_date=completion_date_struct.get("date"),
+            overall_contacts=self._parse_central_contacts(central_contacts_raw),
+            investigators=self._parse_officials(officials_raw),
+            sponsor_type=lead_sponsor.get("leadSponsorClass"),
+            study_type=design_mod.get("studyType"),
+            intervention_types=intervention_types,
         )
 
     @staticmethod
-    def _parse_locations(locations_raw: list[dict]) -> list[TrialLocation]:
+    def _parse_contact(c: dict) -> SiteContact:
+        return SiteContact(
+            name=c.get("name"),
+            role=c.get("role"),
+            phone=c.get("phone") or c.get("phoneExt"),
+            email=c.get("email"),
+        )
+
+    @classmethod
+    def _parse_central_contacts(cls, raw: list[dict]) -> list[SiteContact]:
+        return [cls._parse_contact(c) for c in raw if c.get("name") or c.get("email")]
+
+    @classmethod
+    def _parse_officials(cls, raw: list[dict]) -> list[SiteContact]:
+        return [cls._parse_contact(c) for c in raw if c.get("name")]
+
+    @classmethod
+    def _parse_locations(cls, locations_raw: list[dict]) -> list[TrialLocation]:
         result = []
         for loc in locations_raw:
             geo = loc.get("geoPoint") or {}
+            site_contacts = [
+                cls._parse_contact(c)
+                for c in loc.get("contacts", [])
+                if c.get("name") or c.get("email")
+            ]
             result.append(
                 TrialLocation(
                     facility=loc.get("facility"),
@@ -175,10 +212,9 @@ class TrialFetcher:
                     state=loc.get("state"),
                     zip=loc.get("zip"),
                     country=loc.get("country"),
-                    # geoPoint is pre-supplied by ctgov — no Nominatim needed
-                    # for sites that have it. Nominatim fallback lives in Layer 6.
                     lat=geo.get("lat"),
                     lon=geo.get("lon"),
+                    contacts=site_contacts,
                 )
             )
         return result

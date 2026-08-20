@@ -2,6 +2,13 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class SiteContact(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None   # e.g. "CONTACT", "PRINCIPAL_INVESTIGATOR", "SUB_INVESTIGATOR"
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+
 class TrialLocation(BaseModel):
     facility: Optional[str] = None
     status: Optional[str] = None
@@ -13,6 +20,7 @@ class TrialLocation(BaseModel):
     # This means we skip Nominatim calls for most sites.
     lat: Optional[float] = None
     lon: Optional[float] = None
+    contacts: list[SiteContact] = Field(default_factory=list)
 
 
 class RawTrial(BaseModel):
@@ -32,3 +40,9 @@ class RawTrial(BaseModel):
     overall_status: Optional[str] = None
     locations: list[TrialLocation] = Field(default_factory=list)
     start_date: Optional[str] = None
+    primary_completion_date: Optional[str] = None
+    overall_contacts: list[SiteContact] = Field(default_factory=list)   # centralContacts
+    investigators: list[SiteContact] = Field(default_factory=list)      # overallOfficials
+    sponsor_type: Optional[str] = None          # "INDUSTRY" | "NIH" | "OTH" | "FED" | ...
+    study_type: Optional[str] = None            # "INTERVENTIONAL" | "OBSERVATIONAL"
+    intervention_types: list[str] = Field(default_factory=list)  # ["DRUG", "DEVICE", ...]

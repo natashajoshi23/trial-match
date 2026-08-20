@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { AppMode } from '../hooks/useMode'
 import type { SavedTrial } from '../hooks/useSaves'
+import MatchCard from './MatchCard'
 
 const NAVY = '#1B3A52'
 
@@ -14,22 +15,6 @@ function timeAgo(ts: number): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-function ScoreChip({ score, excluded }: { score: number; excluded: boolean }) {
-  const color = excluded ? '#C03A2B' : score >= 0.7 ? '#22A85A' : score >= 0.5 ? '#E8701A' : '#8A9BA8'
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: '0.73rem', fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace", color,
-    }}>
-      <span style={{
-        width: 6, height: 6, borderRadius: '50%', background: color,
-        display: 'inline-block', boxShadow: `0 0 5px ${color}70`,
-      }} />
-      {Math.round(score * 100)}%
-    </span>
-  )
-}
 
 function PatientLabelField({ value, onChange }: {
   value: string
@@ -215,138 +200,28 @@ function SavedCard({ saved, mode, onUnsave, onUpdateLabel, onUpdateNotes }: {
   onUpdateLabel: (label: string) => void
   onUpdateNotes: (notes: string) => void
 }) {
-  const ctUrl = `https://clinicaltrials.gov/study/${saved.nct_id}`
-  const phaseLabel = saved.phases
-    .map(p => p.replace('PHASE', 'Ph ').replace('_', '/'))
-    .join(' / ') || null
-
-  const barColor = saved.hard_excluded
-    ? 'linear-gradient(90deg,#C03A2B,#E8701A)'
-    : saved.final_score >= 0.7 ? `linear-gradient(90deg,${NAVY},#F5B642)`
-    : saved.final_score >= 0.5 ? 'linear-gradient(90deg,#E8701A,#F5B642)'
-    : 'linear-gradient(90deg,#E2D9C8,#DDD5C0)'
-
-  const headlineColor = saved.hard_excluded ? '#C03A2B'
-    : saved.final_score >= 0.7 ? NAVY
-    : saved.final_score >= 0.5 ? '#E8701A'
-    : '#8A9BA8'
-
   return (
-    <div style={{
-      borderRadius: 14, border: '1.5px solid #E2D9C8',
-      background: '#FFFFFF', overflow: 'hidden',
-      boxShadow: '0 1px 6px rgba(27,58,82,0.05)',
-      opacity: saved.hard_excluded ? 0.82 : 1,
-      transition: 'box-shadow 0.15s, border-color 0.15s',
-    }}
-    onMouseEnter={e => {
-      const el = e.currentTarget as HTMLDivElement
-      el.style.borderColor = 'rgba(27,58,82,0.28)'
-      el.style.boxShadow = '0 3px 14px rgba(27,58,82,0.1)'
-    }}
-    onMouseLeave={e => {
-      const el = e.currentTarget as HTMLDivElement
-      el.style.borderColor = '#E2D9C8'
-      el.style.boxShadow = '0 1px 6px rgba(27,58,82,0.05)'
-    }}
-    >
-      <div style={{ height: 3, background: barColor }} />
-      <div style={{ padding: '14px 16px' }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 7, alignItems: 'center' }}>
-              <ScoreChip score={saved.final_score} excluded={saved.hard_excluded} />
-              <span style={{
-                fontSize: '0.6rem', fontFamily: "'JetBrains Mono', monospace",
-                border: '1px solid #E2D9C8', background: '#F7F3EC',
-                color: '#8A9BA8', borderRadius: 5, padding: '1px 6px',
-              }}>
-                {saved.nct_id}
-              </span>
-              {phaseLabel && (
-                <span style={{
-                  fontSize: '0.6rem', fontWeight: 600,
-                  border: '1px solid rgba(27,58,82,0.2)',
-                  background: 'rgba(27,58,82,0.06)',
-                  color: NAVY, borderRadius: 5, padding: '1px 6px',
-                }}>
-                  {phaseLabel}
-                </span>
-              )}
-            </div>
-            {/* Title */}
-            <a
-              href={ctUrl} target="_blank" rel="noopener noreferrer"
-              aria-label={`${saved.brief_title} — view on ClinicalTrials.gov, opens in new tab`}
-              style={{
-                fontSize: '0.845rem', fontWeight: 700, color: NAVY,
-                textDecoration: 'none', lineHeight: 1.4,
-                display: 'block', marginBottom: 4, transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => { (e.currentTarget.style.color = '#2D5F7C') }}
-              onMouseLeave={e => { (e.currentTarget.style.color = NAVY) }}
-            >
-              {saved.brief_title}
-            </a>
-            <p style={{ fontSize: '0.72rem', fontWeight: 600, color: headlineColor, marginBottom: 6 }}>
-              {saved.headline}
-            </p>
-            {mode === 'doctor' && (
-              <PatientLabelField value={saved.patientLabel} onChange={onUpdateLabel} />
-            )}
-            <NotesField value={saved.notes} onChange={onUpdateNotes} />
-          </div>
-          {/* Remove */}
-          <button
-            onClick={onUnsave}
-            aria-label="Remove trial from saved"
-            style={{
-              flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
-              border: '1.5px solid #E2D9C8', background: '#F7F3EC',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#8A9BA8', transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(192,58,43,0.4)'
-              e.currentTarget.style.color = '#C03A2B'
-              e.currentTarget.style.background = 'rgba(192,58,43,0.06)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = '#E2D9C8'
-              e.currentTarget.style.color = '#8A9BA8'
-              e.currentTarget.style.background = '#F7F3EC'
-            }}
-          >
-            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 10,
-        }}>
-          <span style={{ fontSize: '0.62rem', color: '#B0BEC5' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <MatchCard
+        trial={saved}
+        rank={0}
+        isSaved={true}
+        onSaveToggle={onUnsave}
+      />
+      {/* Notes / patient label below the card */}
+      <div style={{
+        background: '#FAFAF8', border: '1px solid #E2D9C8', borderTop: 'none',
+        borderRadius: '0 0 12px 12px', padding: '10px 18px 12px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          {mode === 'doctor' && (
+            <PatientLabelField value={saved.patientLabel} onChange={onUpdateLabel} />
+          )}
+          <span style={{ fontSize: '0.62rem', color: '#B8C4CC', marginLeft: 'auto' }}>
             Saved {timeAgo(saved.savedAt)}
           </span>
-          <a
-            href={ctUrl} target="_blank" rel="noopener noreferrer"
-            aria-label="View on ClinicalTrials.gov, opens in new tab"
-            style={{
-              fontSize: '0.68rem', fontWeight: 600, color: '#8A9BA8',
-              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget.style.color = NAVY) }}
-            onMouseLeave={e => { (e.currentTarget.style.color = '#8A9BA8') }}
-          >
-            ClinicalTrials.gov
-            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
         </div>
+        <NotesField value={saved.notes} onChange={onUpdateNotes} />
       </div>
     </div>
   )
@@ -359,9 +234,10 @@ interface Props {
   onUpdateLabel: (nct_id: string, label: string) => void
   onUpdateNotes: (nct_id: string, notes: string) => void
   onClearAll: () => void
+  onGoToSearch: () => void
 }
 
-export default function SavedView({ saves, mode, onUnsave, onUpdateLabel, onUpdateNotes, onClearAll }: Props) {
+export default function SavedView({ saves, mode, onUnsave, onUpdateLabel, onUpdateNotes, onClearAll, onGoToSearch }: Props) {
   const [patientFilter, setPatientFilter] = useState<string>('all')
 
   const patientNames = mode === 'doctor'
@@ -455,30 +331,139 @@ export default function SavedView({ saves, mode, onUnsave, onUpdateLabel, onUpda
   }
 
   if (saves.length === 0) {
+    const steps = mode === 'doctor'
+      ? [
+          { n: '01', text: 'Run a search with a patient\'s primary condition and biomarkers' },
+          { n: '02', text: 'Bookmark trials using the ribbon icon on each result card' },
+          { n: '03', text: 'Tag each saved trial with a patient name to build your log' },
+        ]
+      : [
+          { n: '01', text: 'Fill in your profile on the Search tab — condition, age, biomarkers' },
+          { n: '02', text: 'Bookmark trials that look relevant using the ribbon icon' },
+          { n: '03', text: 'Bring this list to your next appointment to discuss with your doctor' },
+        ]
+
+    // Ghost card rows for the preview
+    const ghostCards = [
+      { pct: 87, phase: 'Ph 3', w1: '72%', w2: '55%', w3: '88%', color: '#22A85A' },
+      { pct: 74, phase: 'Ph 2', w1: '60%', w2: '80%', w3: '45%', color: '#22A85A' },
+      { pct: 54, phase: 'Ph 2', w1: '78%', w2: '50%', w3: '65%', color: '#E8701A' },
+    ]
+
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '80px 24px', textAlign: 'center', gap: 16,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Top banner */}
         <div style={{
-          width: 56, height: 56, borderRadius: 16,
-          background: 'rgba(27,58,82,0.05)',
-          border: '1.5px solid rgba(27,58,82,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 0, borderRadius: 20, overflow: 'hidden',
+          border: '1.5px solid #E2D9C8', background: '#FFFFFF',
         }}>
-          <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#8A9BA8" strokeWidth={1.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-          </svg>
+          {/* Left: text */}
+          <div style={{ padding: '36px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16 }}>
+            <div>
+              <p style={{
+                fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: '#8A9BA8', marginBottom: 8,
+              }}>Saved trials</p>
+              <h2 style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 800, fontSize: '1.45rem',
+                color: NAVY, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 10,
+              }}>
+                {mode === 'doctor' ? 'Your patient trial log' : 'Your shortlist'}
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#4A6070', lineHeight: 1.7 }}>
+                {mode === 'doctor'
+                  ? 'Save and tag trials as you search. Build a per-patient shortlist you can review before each consultation.'
+                  : 'Bookmark trials that match your profile and bring the list to your next appointment.'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {steps.map(s => (
+                <div key={s.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <span style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.68rem', fontWeight: 800,
+                    color: '#C4D0D8', flexShrink: 0, paddingTop: 2,
+                  }}>{s.n}</span>
+                  <p style={{ fontSize: '0.82rem', color: '#4A6070', lineHeight: 1.6 }}>{s.text}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={onGoToSearch}
+              style={{
+                alignSelf: 'flex-start',
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 20px', borderRadius: 999,
+                background: NAVY, color: '#FBF7F0',
+                border: 'none', cursor: 'pointer',
+                fontSize: '0.8rem', fontWeight: 700,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                letterSpacing: '0.01em', transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.88' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+            >
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+              </svg>
+              Start a search
+            </button>
+          </div>
+
+          {/* Right: image */}
+          <div style={{ position: 'relative', background: '#F0EBE3', borderLeft: '1.5px solid #E2D9C8', overflow: 'hidden', height: 560, minHeight: 'unset' }}>
+            <img
+              src={mode === 'doctor' ? '/images/saved-doctor.jpg' : '/images/saved-patient.jpg'}
+              alt=""
+              aria-hidden="true"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+            />
+          </div>
         </div>
+
+        {/* Ghost preview cards */}
         <div>
-          <p style={{ fontWeight: 700, color: NAVY, fontSize: '0.95rem', marginBottom: 6 }}>
-            No saved trials yet
+          <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7A8FA0', marginBottom: 10 }}>
+            Preview — your saved trials will appear here
           </p>
-          <p style={{ fontSize: '0.82rem', color: '#8A9BA8', maxWidth: 320, lineHeight: 1.65 }}>
-            {mode === 'patient'
-              ? 'Bookmark trials from the Search tab to review them before your appointment.'
-              : 'Save trials while searching, then tag each one with a patient name to build your log here.'}
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', userSelect: 'none' }}>
+            {ghostCards.map((g, i) => (
+              <div key={i} style={{
+                background: '#FFFFFF', border: '1px solid #EDE8E0',
+                borderLeft: `4px solid #E2D9C8`,
+                borderRadius: 12, padding: '16px 20px',
+                opacity: 0.45 - i * 0.12,
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                {/* Ghost ring */}
+                <div style={{
+                  width: 52, height: 52, flexShrink: 0,
+                  borderRadius: '50%', border: '5px solid #EDE8E0',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#FAFAF8',
+                }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: g.color, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {g.pct}
+                  </span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Title placeholder */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ height: 13, background: '#E2D9C8', borderRadius: 4, width: g.w1 }} />
+                    <div style={{ height: 13, background: '#E2D9C8', borderRadius: 4, width: g.w3 }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ height: 18, background: '#EDE8E0', borderRadius: 4, width: 44 }} />
+                    <div style={{ height: 18, background: '#EDE8E0', borderRadius: 4, width: 80 }} />
+                    <div style={{ height: 18, background: '#EDE8E0', borderRadius: 4, width: g.w2 }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
