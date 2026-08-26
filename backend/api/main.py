@@ -105,7 +105,7 @@ app.add_middleware(
 @app.get("/api/health", tags=["meta"])
 async def health():
     """Liveness probe for Docker / load-balancer health checks."""
-    return {"status": "ok"}
+    return {"status": "ok", "build": "gov-otherGov-1"}
 
 
 @app.post("/api/match", response_model=MatchResponse, tags=["matching"])
