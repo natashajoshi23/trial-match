@@ -235,6 +235,7 @@ const SPONSOR_LABELS: Record<string, string> = {
   INDUSTRY: 'Industry-sponsored (Pharma / Biotech)',
   NIH: 'NIH-funded study',
   FED: 'Government-funded study',
+  OTHER_GOV: 'Government-funded study',
   U_S_FED: 'U.S. Federal government study',
   INDIV: 'Investigator-initiated study',
   NETWORK: 'Collaborative network study',
@@ -580,7 +581,7 @@ function ProfileCard({ trial, saved, onSave, onUnsave, patientLat, patientLon, o
             <span style={{ background: '#F0F4FF', color: '#3730A3', fontSize: '0.68rem', fontWeight: 600, padding: '3px 10px', borderRadius: 999 }}>
               {trial.sponsor_type === 'INDUSTRY' ? 'Industry' :
                trial.sponsor_type === 'NIH' ? 'NIH' :
-               trial.sponsor_type.startsWith('FED') || trial.sponsor_type === 'U_S_FED' ? 'Gov\'t' :
+               trial.sponsor_type.startsWith('FED') || trial.sponsor_type === 'U_S_FED' || trial.sponsor_type === 'OTHER_GOV' ? 'Gov\'t' :
                'Academic'}
             </span>
           )}

@@ -298,7 +298,11 @@ async def find_sites(
 
         # Sponsor type filter — null sponsor_type excluded when filter is set
         if body.sponsor_types:
-            if not trial.sponsor_type or trial.sponsor_type.upper() not in [s.upper() for s in body.sponsor_types]:
+            requested = {s.upper() for s in body.sponsor_types}
+            # "Government" (FED) also covers other government agencies (OTHER_GOV)
+            if "FED" in requested:
+                requested.add("OTHER_GOV")
+            if not trial.sponsor_type or trial.sponsor_type.upper() not in requested:
                 continue
 
         # Study type filter — null study_type excluded when filter is set
