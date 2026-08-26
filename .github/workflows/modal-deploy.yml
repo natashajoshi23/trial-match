@@ -1,0 +1,44 @@
+name: Deploy to Modal
+
+# Builds the frontend and deploys the app to Modal on every push to main.
+# Requires two repository secrets (Settings → Secrets and variables → Actions):
+#   MODAL_TOKEN_ID     — from `modal token new` / ~/.modal.toml
+#   MODAL_TOKEN_SECRET — same source
+# Running the deploy from CI avoids local network issues with Modal's
+# long-lived gRPC connection.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # allows manual "Run workflow" from the Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npx vite build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Modal client
+        run: pip install modal
+
+      - name: Deploy to Modal
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+        run: modal deploy modal_app.py

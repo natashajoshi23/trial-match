@@ -398,3 +398,18 @@ async def find_sites(
         patient_lon=patient_lon,
         geo_warning=geo_warning,
     )
+
+
+# ---------------------------------------------------------------------------
+# Static frontend (single-container deploy, e.g. Hugging Face Spaces)
+# ---------------------------------------------------------------------------
+# When the built frontend is present (copied into the image at STATIC_DIR),
+# serve it from the same origin so the SPA's relative /api/* calls just work
+# without a separate reverse proxy. This mount is added AFTER the /api routes
+# above so those always take precedence. It is a no-op in local dev, where the
+# static directory does not exist and Vite serves the frontend instead.
+_STATIC_DIR = Path(os.getenv("STATIC_DIR", "static"))
+if _STATIC_DIR.is_dir():
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")

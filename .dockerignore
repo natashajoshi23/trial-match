@@ -1,0 +1,30 @@
+# Keep the Docker build context lean and reproducible.
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Secrets / local env
+.env
+.env.local
+
+# Data (vector store + trial cache — rebuilt at runtime)
+backend/data/
+
+# Frontend build artifacts / deps (rebuilt inside the image)
+frontend/node_modules/
+frontend/dist/
+
+# VCS & tooling
+.git/
+.github/
+.claude/
+.devtools/
+
+# macOS
+.DS_Store
