@@ -23,7 +23,7 @@ const SPONSOR_OPTIONS = [
   { label: 'Industry', value: 'INDUSTRY', desc: 'Pharma / Biotech' },
   { label: 'NIH', value: 'NIH', desc: 'National Institutes of Health' },
   { label: 'Government', value: 'FED', desc: 'Federal / Gov\'t agencies' },
-  { label: 'Academic / Other', value: 'OTH', desc: 'Universities, nonprofits' },
+  { label: 'Academic / Other', value: 'OTHER', desc: 'Universities, nonprofits' },
 ]
 
 const STUDY_TYPE_OPTIONS = [

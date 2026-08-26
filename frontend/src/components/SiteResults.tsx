@@ -238,7 +238,7 @@ const SPONSOR_LABELS: Record<string, string> = {
   U_S_FED: 'U.S. Federal government study',
   INDIV: 'Investigator-initiated study',
   NETWORK: 'Collaborative network study',
-  OTH: 'Academic / non-profit sponsored',
+  OTHER: 'Academic / non-profit sponsored',
 }
 
 const IV_LABELS: Record<string, string> = {

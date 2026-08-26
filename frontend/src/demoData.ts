@@ -387,7 +387,7 @@ export const RESEARCHER_DEMO_DATA: ResearcherSearchResponse = {
       overall_contacts: [],
       total_sites: 14,
       countries_at_sites: ['Australia', 'New Zealand', 'United Kingdom', 'United States'],
-      sponsor_type: 'OTH',
+      sponsor_type: 'OTHER',
       study_type: 'OBSERVATIONAL',
       intervention_types: [],
     },

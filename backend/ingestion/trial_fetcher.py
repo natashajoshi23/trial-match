@@ -172,7 +172,7 @@ class TrialFetcher:
             primary_completion_date=completion_date_struct.get("date"),
             overall_contacts=self._parse_central_contacts(central_contacts_raw),
             investigators=self._parse_officials(officials_raw),
-            sponsor_type=lead_sponsor.get("leadSponsorClass"),
+            sponsor_type=lead_sponsor.get("class"),
             study_type=design_mod.get("studyType"),
             intervention_types=intervention_types,
         )
